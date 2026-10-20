@@ -195,14 +195,14 @@ Main tables: `documents` (the uploaded file), `pages`, `records`, `record_commit
 | GET | `/records` | List records with filtering (`status`, `sender`, `from`, `to`, `q`, `needs_review`, `document_id`) |
 | GET | `/records/{id}` | A single record |
 | PATCH | `/records/{id}` | Correct fields |
-| POST | `/records/{id}/merge-previous` | Attach the form to the previous form |
-| POST | `/records/{id}/split` | Split a form by page |
+| POST | `/records/{id}/merge-previous` | Attach the form to the previous form (not built) |
+| POST | `/records/{id}/split` | Split a form by page (not built) |
 | POST | `/records/{id}/approve` | Approve |
 | POST | `/records/approve-clean` | Approve all pending records with nothing flagged |
 | POST | `/pages/{id}/reprocess` | Retry a failed page |
 | GET | `/pages/{id}/image` | The page image |
 | GET | `/senders` | The closed sender list |
-| GET | `/export` | Export (extra) |
+| GET | `/export` | Export (extra, not built) |
 
 ---
 
@@ -250,6 +250,24 @@ Main tables: `documents` (the uploaded file), `pages`, `records`, `record_commit
 - Metrics per field: accuracy, percentage flagged, and percentage of errors that were not flagged. The last one is the most important metric.
 - In the honest report: the samples are marked with a highlighter, so accuracy on them is probably higher than in reality.
 
+### 10.1 Results so far (2026-10-20)
+
+Gemini 2.5 Flash, ID check in `strict` mode, **21 development pages**, scored from cached answers. These pages include sideways scans that were read **without** orientation correction, so the numbers understate the current pipeline. The test set has **not** been run.
+
+| Field | Accuracy | Flagged | Errors not flagged |
+|---|---|---|---|
+| ID | 33% | 52% | 4 of 14 |
+| Central number | 67% | 38% | 0 of 7 |
+| Received date | 57% | 95% | 0 of 9 |
+| Sender | 67% | 33% | 0 of 7 |
+| Commitment number | 76% | 86% | 0 of 5 |
+
+What changed these numbers, in order: a prompt that forbids putting central numbers under commitment numbers (central 18% to 67%); a `highlighted` flag and a rival-sender cap (senders stopped being silently wrong); and a rule that a barcode match alone does not make a number high when several numbers compete (commitment 57% to 76%).
+
+Orientation: on 2 sideways pages with `gemini-3.5-flash` (a third did not finish before the quota ran out), `p1_14` (needs a flip) went from no sender, central number or date to all three right; `p1_03` still misreads handwritten digits (flagged). Two pages is not a measurement. The detector itself separated all 11 sideways samples from the 37 upright ones, but its threshold was chosen on those same pages, so that is not an independent test.
+
+Not yet measured: the test set, other Gemini models, Groq, run-to-run variation at temperature 0, and a before/after comparison of orientation correction on all 11 sideways pages (blocked by the daily quota).
+
 ---
 
 ## 11. Privacy
@@ -292,7 +310,7 @@ Main tables: `documents` (the uploaded file), `pages`, `records`, `record_commit
 - Decision: one `VisionProvider` interface with two free implementations: Gemini (Google AI Studio) and Groq (open models with image support). On day 1 both are run on the same 5 to 10 pages from the ground-truth table. The better one is the primary provider and the other is the fallback. The provider can be changed through an environment variable.
 - **Fallback chain:** one key per provider. When the primary returns 429 even after backoff, the page goes to the fallback provider, and this is recorded in the record (`provider`) so it is clear which model did the extraction.
 - **Not done:** several keys or accounts at the same provider to get around the rate limit. This goes against the terms of service of most providers and could cause a block on demo day.
-- **[OPEN]**: the result of the experiment, and timing a stack of 30 pages. Status: only Gemini has been measured. Groq is blocked by the current network filter (NetFree, HTTP 418), so the comparison has to be run from another network.
+- **[OPEN]**: the result of the experiment, and timing a stack of 30 pages. Status: only Gemini has been measured. Groq is blocked by the current network filter (NetFree, HTTP 418), so the comparison has to be run from another network. The daily quota (see the quota finding below) now blocks the 30-page timing as well.
 - Consequences: low rate limits, which means limited parallel processing and handling of 429 errors. On the free tier the input may be used by the provider (see section 11). Two providers may give different accuracy, so evaluation reports each provider separately.
 - **Demo backup:** the demo stack is processed in advance and saved in the DB. If there is a rate limit during the demo, the saved results are shown.
 - **Quota finding (day 2):** the Gemini free tier allows **20 requests per day per model** (the 429 says `limit: 20`). One model therefore cannot process a 40-page stack in a day. Quotas are per model, so `GeminiProvider` walks a list of models (`GEMINI_MODEL` then `GEMINI_FALLBACK_MODELS`), skipping a model that says "retry in 17h". A 429 that asks for a wait over 90 seconds is treated as an exhausted daily quota and is not waited out. With four models that is about 80 requests a day, which covers a 40-page batch plus retries, but only if those models give similar accuracy; this has not been measured. Models differ in speed (some newer ones took over a minute for a call). Using one key with several models is within the terms of service; several keys or accounts would not be (see above).
@@ -374,12 +392,14 @@ Main tables: `documents` (the uploaded file), `pages`, `records`, `record_commit
 ## 13. Open questions
 
 ### Technical
-1. **Which Gemini model?** Two or three models should be compared on 5 to 10 handwritten pages, within the free-tier limits. Status: `gemini-2.5-flash` measured. A second model (for example flash-lite) is untested, and its quota may be separate.
-2. **Rate limits on the free tier:** are they enough to run a stack of 30 pages in a reasonable time in the demo? Measured so far: about 20 pages per session on Gemini before the quota stops it. With one call per page and a fallback provider (ADR-003) the chances are good, and there are also pre-saved results.
-3. **ID check digits in the samples:** do the IDs in the samples pass? Settled: 35 of 48 pass (ADR-014).
-4. **Multi-page forms:** are there any in the samples? Settled: no (ADR-015).
+1. **Which Gemini model?** `gemini-3.5-flash`, `gemini-3.1-flash-lite`, `gemini-3.5-flash-lite` and `gemini-2.5-flash` respond; some newer ones are very slow. Accuracy has been measured only for `gemini-2.5-flash` (and on a handful of pages for `gemini-3.5-flash`). A like-for-like comparison on the same pages is still to do, and is what decides the order of the fallback list.
+2. **Rate limits on the free tier:** settled as a constraint, not a question: 20 requests per day per model (ADR-003). Open: is a four-model chain enough for the demo, and is it acceptable for the lab (it is not; see section 11).
+3. **ID check digits in the samples:** settled: 35 of 48 pass (ADR-014).
+4. **Multi-page forms:** settled: none in the samples (ADR-015).
 5. **Cloud deployment:** which service for the backend and PostgreSQL. To be decided after submission.
 6. **Schema migrations:** there is no Alembic yet. A schema change currently needs a reset of the dev database.
+7. **Accuracy on the test set and on unmarked forms:** not measured. The samples are highlighted, real forms are not.
+8. **Run-to-run variation:** the same page can give slightly different answers at temperature 0. Not measured.
 
 ### For the organizers
 1. Does the hackathon provide credits for model APIs?
@@ -389,9 +409,15 @@ Main tables: `documents` (the uploaded file), `pages`, `records`, `record_commit
 
 ## 14. Schedule (two days)
 
+### Progress summary (2026-10-20)
+
+The full path works end to end and is covered by tests: 92 backend tests (also run against PostgreSQL), 98 frontend tests, and 21 browser tests in real Chromium. The review screen follows the approved design (Stone palette, collapsible form list, large form image, zoom, magnifier, expanded view, inline editing, one-click confirm). Bugs found by real use and by the browser tests were fixed: sideways scans (orientation), flags that could not be cleared (ADR-017), the duplicate-upload notice, and a closed form list leaving a 1px line.
+
+Open, in the order I would take them: (1) run the test set and compare Gemini models on the same pages, once the daily quota allows; (2) the records screen with date and sender filters, and export; (3) template hints and a second look at uncertain fields, if the measurements say they are worth it; (4) pre-processed demo results as the safety net; (5) the final summary (approach, limitations, what a real lab needs).
+
 ### Day 1
 - [x] Project setup: folder structure (backend, venv, requirements, .gitignore, .env.example)
-- [~] Docker Compose and DB (compose file and DB code exist and pass tests on both SQLite and PostgreSQL 16)
+- [x] Docker Compose and DB (PostgreSQL 16; a separate `hakaton_test` database for the tests)
 - [~] One API key for Gemini and one for Groq (keys are in `.env`; Groq is blocked on the current network)
 - [x] Ground truth: draft for all 48 pages
 - [x] Ground truth: manual verification
@@ -399,24 +425,30 @@ Main tables: `documents` (the uploaded file), `pages`, `records`, `record_commit
 - [x] Seed of the sender list and matching to it (section 5.4)
 - [x] PDF and HEIC conversion to images, barcode decoding, image enhancement (perspective, deskew, contrast)
 - [x] Orientation detection and rotation (local detection plus a model-assisted flip, no Tesseract; ADR-009)
-- [~] Basic extraction in one call with structured output, and a comparison experiment between the two providers (Gemini measured on 21 dev pages; Groq not yet)
+- [~] Basic extraction in one call with structured output, and a comparison experiment between providers (Gemini measured; Groq blocked)
 - [x] Normalization and validations
-- [x] Save to DB and basic API (FastAPI: upload, status, records, patch, approve, approve-clean, images)
-- [ ] Timing a stack of 30 pages
-- [x] First run of the evaluation script (partial, because of the Gemini rate limit)
+- [x] Save to DB and API (FastAPI: upload, status, records, patch, approve, approve-clean, images, senders)
+- [ ] Timing a stack of 30 pages (blocked by the daily quota)
+- [x] First run of the evaluation script (dev set, partial; test set not run)
 
 ### Day 2
 - [ ] Template hints for the main senders
-- [~] Confidence calculation (done) and a second call for uncertain fields (not done)
-- [~] Fallback provider on a 429 (implemented and tested with a fake provider; not tried against Groq)
+- [~] Confidence calculation (done); a second call for uncertain fields (not started)
+- [x] Fallback: a chain of Gemini models on quota errors, and a second provider on 429 (the second provider is untested against the real service)
 - [x] Upload screen
-- [~] Review table and single-form screen (done; attaching and splitting forms not yet)
+- [x] Review table and single-form screen (attach and split forms: not built, not needed by the samples)
 - [ ] Records screen with filtering (the form list has search and a needs-review filter; date and sender filters and export are not built)
-- [~] Duplicate detection (hash and warnings done; UI not done)
+- [~] Duplicate detection (hash and warnings done in the API and the form screen; the upload notice is tested)
 - [ ] Running the evaluation on the test set
-- [~] README (written), run instructions and summary (approach, limitations, what the lab needs)
+- [x] README, run instructions and test instructions (the final summary of approach, limitations and lab requirements is still to write)
 - [ ] Pre-processing the demo stack and saving it in the DB (backup for the rate limit)
 - [ ] Rehearsing the demo scenario
+
+### Added along the way
+- [x] Human confirmation of flagged fields (ADR-017)
+- [x] Quota-aware retries and a model fallback list (ADR-003)
+- [x] Test suites: backend (pytest), frontend (Vitest and Testing Library), browser (Playwright, including sideways and upside-down scans)
+- [x] Frontend design exploration: three layouts and four palettes, Stone chosen
 
 ---
 
@@ -426,7 +458,12 @@ Main tables: `documents` (the uploaded file), `pages`, `records`, `record_commit
 |---|---|
 | Hebrew handwriting is not read | Flag and do not guess. The names in the samples are scribbles anyway |
 | Barcodes do not decode in a scan | An extra signal only, the system does not depend on it |
-| API rate limits or cost | One call per page, limited parallel processing, a fallback provider, and pre-saved results for the demo |
+| API rate limits or cost | One call per page, limited parallel processing, a chain of Gemini models and a second provider, and pre-saved results for the demo |
+| Free-tier daily quota (20 requests per model per day) stops a batch | A model fallback list, no waiting on a daily 429, and pre-processed demo results. A real lab needs a paid tier or a local model |
+| A fallback model is less accurate than the primary | Not yet measured. Compare the models on the same pages before relying on the chain |
+| Sideways and upside-down scans (11 of 48 samples) | Local detection, a model-assisted flip, browser tests, and the corrected image shown to the reviewer |
+| The network blocks a provider (Groq is blocked here) | The primary does not depend on it. Test the demo network in advance |
+| A person confirms a wrong value | The correction log, and the fact that only a person can clear a flag. Confirmations are not logged individually yet |
 | IDs in the samples fail the check digit | Settled: `strict` mode is kept (ADR-014) |
 | Skewed phone photos or dark scans | Local image enhancement, and fields flagged when quality is low |
 | Overfitting to the samples | Separation between a development set and a test set |

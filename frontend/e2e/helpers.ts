@@ -5,7 +5,7 @@ import { API_URL } from './env'
 const fixture = (name: string) => fileURLToPath(new URL(`./fixtures/${name}.png`, import.meta.url))
 
 /** Which scripted answer a fixture gets (see backend/e2e/server.py). */
-export type Form = 'form-a' | 'form-b' | 'form-c'
+export type Form = 'form-a' | 'form-b' | 'form-c' | 'sideways' | 'upside-down' | 'sideways-flipped'
 
 /** Start every test from an empty system. */
 export async function resetBackend(page: Page) {
@@ -21,6 +21,12 @@ export async function uploadForms(page: Page, ...forms: Form[]) {
   await expect(page.getByText('עמוד 1 · מוכן')).toHaveCount(forms.length, { timeout: 30_000 })
   await page.getByRole('tab', { name: 'טבלה' }).click()
   await expect(page.getByRole('banner')).toContainText(`${forms.length} טפסים`)
+}
+
+/** How many times the scripted vision model has been asked since the last reset. */
+export async function modelCalls(page: Page): Promise<number> {
+  const res = await page.request.get(`${API_URL}/__test__/calls`)
+  return (await res.json()).calls
 }
 
 export const header = (page: Page) => page.getByRole('banner')

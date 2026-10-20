@@ -56,23 +56,60 @@ def form_c() -> RawExtraction:
     return RawExtraction(template="other", sender=V(value="קליניקה לא ידועה", source="printed"))
 
 
-SCENARIOS = {600: form_a, 610: form_b, 620: form_c}
+def form_d() -> RawExtraction:
+    """The page that carries an orientation marker (see ScriptedProvider)."""
+    return RawExtraction(
+        template="clalit",
+        first_name=V(value="יעל", source="printed"), last_name=V(value="אדם", source="printed"),
+        id_numbers=[V(value="011223344", source="printed")],
+        central_numbers=[V(value="939001", source="sticker")],
+        stamp_date=V(value="20/06/2026", source="stamp"),
+        sender=V(value="כללית", source="printed", highlighted=True),
+        commitment_numbers=[V(value="810000001", source="printed")],
+    )
+
+
+SCENARIOS = {600: form_a, 610: form_b, 620: form_c, 630: form_d}
+MARKER_ROWS = 200       # form D carries a solid black block in its upright top-left corner
+MARKER_DARK = 20
 
 
 class ScriptedProvider:
-    """Answers by the width of the page image: 600 -> form A, 610 -> form B, 620 -> form C."""
+    """Answers by the width of the page image: 600 -> form A, 610 -> form B, 620 -> form C, 630 -> form D.
+
+    Form D also plays the part of the vision model judging orientation: if the black marker is in the bottom
+    rows the page is upside down, and the answer is only `text_upside_down=True`. The pipeline must then flip
+    the page and ask again, and the second answer is the full form."""
 
     name = "scripted"
 
+    def __init__(self) -> None:
+        self.calls = 0
+
     async def extract(self, img, hint: str = "") -> RawExtraction:
-        return SCENARIOS.get(img.shape[1], form_c)()
+        self.calls += 1
+        width = img.shape[1]
+        if width == 630:
+            dark_top = int((img[:MARKER_ROWS] < MARKER_DARK).sum())
+            dark_bottom = int((img[-MARKER_ROWS:] < MARKER_DARK).sum())
+            if dark_bottom > dark_top:
+                return RawExtraction(text_upside_down=True)
+        return SCENARIOS.get(width, form_c)()
 
 
-app.state.providers = (ScriptedProvider(), None)
+provider = ScriptedProvider()
+app.state.providers = (provider, None)
+
+
+@app.get("/__test__/calls")
+def calls() -> dict:
+    """How many times the vision model was asked, to check the call budget."""
+    return {"calls": provider.calls}
 
 
 @app.post("/__test__/reset")
 def reset() -> dict:
+    provider.calls = 0
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     for child in storage_dir.iterdir():

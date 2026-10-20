@@ -24,8 +24,20 @@ def page(width: int, title: str) -> np.ndarray:
     return img
 
 
+def marked_page() -> np.ndarray:
+    """Form D, upright: a solid black block in the top-left corner tells the scripted model which way is up."""
+    img = page(630, "FORM D")
+    cv2.rectangle(img, (10, 10), (110, 110), (0, 0, 0), -1)
+    return img
+
+
 if __name__ == "__main__":
     OUT.mkdir(parents=True, exist_ok=True)
-    for name, width in (("form-a", 600), ("form-b", 610), ("form-c", 620)):
-        cv2.imwrite(str(OUT / f"{name}.png"), page(width, name.upper()))
-        print("wrote", OUT / f"{name}.png")
+    pages = {name: page(width, name.upper()) for name, width in (("form-a", 600), ("form-b", 610), ("form-c", 620))}
+    # scans that arrive turned: the pipeline must find the right way up before the model reads them
+    pages["sideways"] = cv2.rotate(pages["form-a"], cv2.ROTATE_90_COUNTERCLOCKWISE)        # one clockwise turn fixes it
+    pages["upside-down"] = cv2.rotate(marked_page(), cv2.ROTATE_180)                       # only the model can tell
+    pages["sideways-flipped"] = cv2.rotate(marked_page(), cv2.ROTATE_90_CLOCKWISE)         # turned, then still upside down
+    for name, img in pages.items():
+        cv2.imwrite(str(OUT / f"{name}.png"), img)
+        print("wrote", OUT / f"{name}.png", img.shape[1], "x", img.shape[0])
