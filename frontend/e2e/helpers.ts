@@ -29,6 +29,12 @@ export async function modelCalls(page: Page): Promise<number> {
   return (await res.json()).calls
 }
 
+/** Add many records at once, straight into the test database. The first `approved` of them are approved. */
+export async function seedRecords(page: Page, n: number, approved = 0) {
+  const res = await page.request.post(`${API_URL}/__test__/seed`, { params: { n, approved } })
+  expect(res.ok()).toBeTruthy()
+}
+
 export const header = (page: Page) => page.getByRole('banner')
 
 /** Open a form from the table by a word in its row, and wait for the form screen. */

@@ -6,6 +6,7 @@ import uuid
 from pydantic import BaseModel
 
 from app.db.models import Document
+from app.evaluation import EvaluationReport
 
 
 class PageStatus(BaseModel):
@@ -28,7 +29,7 @@ class DocumentStatus(BaseModel):
         pages = sorted(doc.pages, key=lambda p: p.page_number)
         return cls(
             id=doc.id, filename=doc.filename, duplicate=duplicate,
-            done=all(p.status in ("ready", "error") for p in pages),
+            done=bool(pages) and all(p.status in ("ready", "error") for p in pages),   # no pages yet is not "done"
             pages=[PageStatus(id=p.id, page_number=p.page_number, status=p.status, error=p.error,
                               record_id=p.record_id) for p in pages])
 
@@ -36,3 +37,11 @@ class DocumentStatus(BaseModel):
 class ApproveCleanResult(BaseModel):
     approved: list[uuid.UUID]
     skipped_duplicates: list[uuid.UUID]
+
+
+class EvaluationOverview(BaseModel):
+    """Saved accuracy reports plus how much of the verified data exists, so the screen can say what was NOT run."""
+    reports: list[EvaluationReport]
+    pages: int          # pages with a hand-verified answer
+    dev_pages: int
+    test_pages: int

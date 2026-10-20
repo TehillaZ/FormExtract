@@ -44,7 +44,7 @@ def _values(fields: list[Field]) -> list[str]:
 
 def _sync_columns(row: Record, rec: CommitmentRecord) -> None:
     """Copy the record into the row: the JSON document plus the columns used for search and filtering."""
-    row.data = rec.model_dump(mode="json", exclude={"corrections", "duplicate_warnings", "id", "status"})
+    row.data = rec.model_dump(mode="json", exclude={"corrections", "duplicate_warnings", "id", "status", "approved_at"})
     row.id_number = rec.id_number.value
     row.sender = rec.sender.value
     row.received_date = date.fromisoformat(rec.received_date.value) if rec.received_date.value else None
@@ -69,7 +69,7 @@ def _sync_numbers(row: Record, rec: CommitmentRecord) -> None:
 
 def _to_record(row: Record) -> CommitmentRecord:
     return CommitmentRecord.model_validate({
-        **row.data, "id": row.id, "status": row.status,
+        **row.data, "id": row.id, "status": row.status, "approved_at": row.approved_at,
         "corrections": [Correction(field=c.field, old_value=c.old_value, new_value=c.new_value, at=c.at)
                         for c in row.corrections],
     })
@@ -126,11 +126,9 @@ def get_record(s: Session, record_id: uuid.UUID) -> CommitmentRecord:
     return _present(s, [_row(s, record_id)])[0]
 
 
-def list_records(s: Session, *, status: str | None = None, sender: str | None = None,
-                 date_from: date | None = None, date_to: date | None = None, q: str | None = None,
-                 needs_review: bool | None = None, document_ids: list[uuid.UUID] | None = None,
-                 limit: int = 200, offset: int = 0) -> list[CommitmentRecord]:
-    stmt = sa.select(Record).options(*_WITH_CHILDREN).order_by(Record.created_at.desc(), Record.id)
+def _filtered(stmt, *, status: str | None, sender: str | None, date_from: date | None, date_to: date | None,
+              q: str | None, needs_review: bool | None, document_ids: list[uuid.UUID] | None):
+    """Apply the record filters to a select. Shared by listing, counting and exporting, so they always agree."""
     # each condition is built only when its filter is given (comparing a column with None would raise)
     filters = [
         (status, lambda: Record.status == status),
@@ -147,10 +145,31 @@ def list_records(s: Session, *, status: str | None = None, sender: str | None = 
         like = f"%{q.strip()}%"
         stmt = stmt.where(sa.or_(
             Record.id_number.like(like),
+            Record.data["first_name"]["value"].as_string().like(like),   # names live in the record's JSON
+            Record.data["last_name"]["value"].as_string().like(like),
             Record.id.in_(sa.select(RecordCentralNumber.record_id).where(RecordCentralNumber.value.like(like))),
             Record.id.in_(sa.select(RecordCommitmentNumber.record_id).where(RecordCommitmentNumber.value.like(like))),
         ))
+    return stmt
+
+
+def list_records(s: Session, *, status: str | None = None, sender: str | None = None,
+                 date_from: date | None = None, date_to: date | None = None, q: str | None = None,
+                 needs_review: bool | None = None, document_ids: list[uuid.UUID] | None = None,
+                 limit: int = 200, offset: int = 0) -> list[CommitmentRecord]:
+    stmt = sa.select(Record).options(*_WITH_CHILDREN).order_by(Record.created_at.desc(), Record.id)
+    stmt = _filtered(stmt, status=status, sender=sender, date_from=date_from, date_to=date_to, q=q,
+                     needs_review=needs_review, document_ids=document_ids)
     return _present(s, list(s.scalars(stmt.limit(limit).offset(offset))))
+
+
+def count_records(s: Session, *, status: str | None = None, sender: str | None = None,
+                  date_from: date | None = None, date_to: date | None = None, q: str | None = None,
+                  needs_review: bool | None = None, document_ids: list[uuid.UUID] | None = None) -> int:
+    """How many records match, ignoring paging: the total behind a page of results."""
+    stmt = _filtered(sa.select(sa.func.count()).select_from(Record), status=status, sender=sender,
+                     date_from=date_from, date_to=date_to, q=q, needs_review=needs_review, document_ids=document_ids)
+    return s.scalar(stmt) or 0
 
 
 # ---- corrections --------------------------------------------------------------------------------

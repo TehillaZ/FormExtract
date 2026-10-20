@@ -3,21 +3,23 @@ from __future__ import annotations
 
 import uuid
 from contextlib import asynccontextmanager
-from datetime import date
-from typing import Annotated, Any
+from datetime import date, datetime
+from typing import Annotated, Any, Literal
 
-from fastapi import BackgroundTasks, Depends, FastAPI, File, HTTPException, Query, UploadFile
+from fastapi import BackgroundTasks, Depends, FastAPI, File, HTTPException, Query, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from app.api.schemas import ApproveCleanResult, DocumentStatus, PageStatus
+from app.api.schemas import ApproveCleanResult, DocumentStatus, EvaluationOverview, PageStatus
 from app.db import repo
 from app.db.models import Document, Page
 from app.db.session import get_session, init_db, is_initialized
+from app.evaluation import EvaluationStore
 from app.pipeline.process import process_document, process_page
 from app.schemas import CommitmentRecord
 from app.services.documents import UploadRejected, register_upload
+from app.services.export import to_csv, to_xlsx
 from app.storage import get_storage
 from app.validation.senders import all_senders
 
@@ -33,9 +35,34 @@ app = FastAPI(title="FormExtract", description="Commitment-form extraction for t
               lifespan=lifespan)
 app.state.providers = None   # tests inject fake vision providers here
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
-                   allow_methods=["*"], allow_headers=["*"])
+                   allow_methods=["*"], allow_headers=["*"], expose_headers=["X-Total-Count", "Content-Disposition"])
 
 DB = Annotated[Session, Depends(get_session)]
+
+
+def get_evaluation_store() -> EvaluationStore:
+    return EvaluationStore()   # tests and the browser-test server override this dependency
+
+
+class RecordFilters:
+    """The filters of the records list, the export and the "approve clean" action: one definition."""
+
+    def __init__(
+        self,
+        status: Annotated[str | None, Query(pattern="^(pending|approved)$")] = None,
+        sender: str | None = None,
+        date_from: Annotated[date | None, Query(alias="from")] = None,
+        date_to: Annotated[date | None, Query(alias="to")] = None,
+        q: str | None = None,
+        needs_review: bool | None = None,
+        document_id: Annotated[list[uuid.UUID] | None, Query()] = None,
+    ):
+        self.status, self.sender, self.date_from, self.date_to = status, sender, date_from, date_to
+        self.q, self.needs_review, self.document_ids = q, needs_review, document_id
+
+    def as_kwargs(self) -> dict:
+        return {"status": self.status, "sender": self.sender, "date_from": self.date_from, "date_to": self.date_to,
+                "q": self.q, "needs_review": self.needs_review, "document_ids": self.document_ids}
 
 
 # ---- documents ----------------------------------------------------------------------------------
@@ -94,18 +121,37 @@ def page_image(page_id: uuid.UUID, db: DB, original: bool = False):
 @app.get("/records", response_model=list[CommitmentRecord])
 def list_records(
     db: DB,
-    status: Annotated[str | None, Query(pattern="^(pending|approved)$")] = None,
-    sender: str | None = None,
-    date_from: Annotated[date | None, Query(alias="from")] = None,
-    date_to: Annotated[date | None, Query(alias="to")] = None,
-    q: str | None = None,
-    needs_review: bool | None = None,
-    document_id: Annotated[list[uuid.UUID] | None, Query()] = None,
+    response: Response,
+    filters: Annotated[RecordFilters, Depends()],
     limit: Annotated[int, Query(le=1000)] = 200,
-    offset: int = 0,
+    offset: Annotated[int, Query(ge=0)] = 0,
 ):
-    return repo.list_records(db, status=status, sender=sender, date_from=date_from, date_to=date_to, q=q,
-                             needs_review=needs_review, document_ids=document_id, limit=limit, offset=offset)
+    """One page of the matching records. The header X-Total-Count says how many match in all."""
+    response.headers["X-Total-Count"] = str(repo.count_records(db, **filters.as_kwargs()))
+    return repo.list_records(db, **filters.as_kwargs(), limit=limit, offset=offset)
+
+
+EXPORTS = {
+    "csv": (to_csv, "text/csv; charset=utf-8"),
+    "xlsx": (to_xlsx, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+}
+
+
+@app.get("/export")
+def export_records(db: DB, filters: Annotated[RecordFilters, Depends()], format: Literal["csv", "xlsx"] = "xlsx"):
+    """The records matching the filters as an Excel file (for people) or CSV (for programs). Same filters as /records."""
+    build, media_type = EXPORTS[format]
+    records = repo.list_records(db, **filters.as_kwargs(), limit=100_000)
+    filename = f"forms-{datetime.now():%Y%m%d-%H%M}.{format}"
+    return Response(build(records), media_type=media_type,
+                    headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+
+
+@app.get("/evaluation", response_model=EvaluationOverview)
+def evaluation(store: Annotated[EvaluationStore, Depends(get_evaluation_store)]):
+    """Saved accuracy reports (written by scripts/evaluate.py) and how much verified data exists."""
+    coverage = store.coverage()
+    return EvaluationOverview(reports=store.reports(), pages=coverage.pages, dev_pages=coverage.dev, test_pages=coverage.test)
 
 
 @app.post("/records/approve-clean", response_model=ApproveCleanResult)

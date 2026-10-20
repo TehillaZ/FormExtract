@@ -24,6 +24,15 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T
 }
 
+/** A list answer plus the total number of matches, which the server sends in X-Total-Count. */
+export async function apiWithTotal<T extends unknown[]>(path: string): Promise<{ items: T; total: number }> {
+  const res = await fetch(BASE + path)
+  if (!res.ok) throw new ApiError(res.status, await errorMessage(res))
+  const items = (await res.json()) as T
+  const total = Number(res.headers.get('X-Total-Count'))
+  return { items, total: Number.isFinite(total) && res.headers.has('X-Total-Count') ? total : items.length }
+}
+
 export function jsonBody(method: string, body: unknown): RequestInit {
   return { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
 }

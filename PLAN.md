@@ -88,7 +88,7 @@ The whole UI is in Hebrew and right-to-left.
 - All records in the system, from all uploads.
 - Search by ID, central number or commitment number.
 - Filter by status (pending or approved), received date and sender.
-- Export of the filtered result (an extra, see section 9).
+- Export of the filtered result to Excel or CSV (built, see ADR-018).
 
 ---
 
@@ -192,7 +192,7 @@ Main tables: `documents` (the uploaded file), `pages`, `records`, `record_commit
 |---|---|---|
 | POST | `/documents` | Upload one or several files |
 | GET | `/documents/{id}` | Processing status |
-| GET | `/records` | List records with filtering (`status`, `sender`, `from`, `to`, `q`, `needs_review`, `document_id`) |
+| GET | `/records` | List records with filtering (`status`, `sender`, `from`, `to`, `q` over names, ID and numbers, `needs_review`, `document_id`) and paging (`limit`, `offset`). The header `X-Total-Count` gives the number of matches |
 | GET | `/records/{id}` | A single record |
 | PATCH | `/records/{id}` | Correct fields |
 | POST | `/records/{id}/merge-previous` | Attach the form to the previous form (not built) |
@@ -202,7 +202,8 @@ Main tables: `documents` (the uploaded file), `pages`, `records`, `record_commit
 | POST | `/pages/{id}/reprocess` | Retry a failed page |
 | GET | `/pages/{id}/image` | The page image |
 | GET | `/senders` | The closed sender list |
-| GET | `/export` | Export (extra, not built) |
+| GET | `/export` | The records matching the same filters as `/records`, as `format=xlsx` (default) or `format=csv` |
+| GET | `/evaluation` | The saved accuracy reports and how many verified pages exist (for the accuracy screen) |
 
 ---
 
@@ -231,8 +232,8 @@ Main tables: `documents` (the uploaded file), `pages`, `records`, `record_commit
 
 ## 9. Extra features (in priority order)
 
-1. Export the filtered result to CSV or Excel.
-2. An "accuracy report" screen: the evaluation script results in the UI, accuracy per field.
+1. Export the filtered result to CSV or Excel. **Done** (ADR-018).
+2. An "accuracy report" screen: the evaluation script results in the UI, accuracy per field. **Done**: saved reports side by side.
 3. Marking the field location on the image. Start with barcodes, for which zxing-cpp returns an exact position. Coordinates from the vision model only if time remains and they prove reliable.
 4. A "highlight removal" mode: remove the yellow marker from the image, to measure accuracy under conditions close to the field.
 5. Running a local model instead of an external API.
@@ -387,6 +388,14 @@ Not yet measured: the test set, other Gemini models, Groq, run-to-run variation 
 - UI: a flagged row has a one-click check button (confirm as is) next to the edit action.
 - Consequences: "approve all clean rows" can now include forms a person has checked. The humans' judgment overrides checks such as the ID check digit, by design.
 
+### ADR-018: Export and the accuracy screen
+- Context: the plan listed an export and an accuracy-report screen as extras, and tomorrow's model comparison needs to put runs side by side.
+- Decision:
+  - **Export** serves the same filters as the records list, from one shared definition, so the list, the total and the export cannot disagree. Excel is for people (right-to-left, real dates, IDs and numbers stored as text); CSV is for programs (UTF-8 with a byte-order mark, ISO dates). A cell that starts like a formula is defused, because form text is untrusted. `openpyxl` is the one new dependency, needed because CSV cannot keep an ID's leading zeros in Excel.
+  - **Accuracy reports**: `scripts/evaluate.py` saves one small JSON report per run configuration and split to `data/eval_reports/` (tracked in git). The API serves them and the screen shows up to three side by side. The screen never shows a number without the page count behind it, warns while the test set has not been run, and explains that an error that was not flagged is the metric that matters.
+- Why saved files and not recomputing: recomputing needs the page images and the model; the saved report needs neither, so the screen works on any machine and the results are part of the repository history.
+- Consequences: an export is a copy of personal data outside the database and outside our control (see section 11). A report reflects the answers cached at the time it was written; running the script again replaces it.
+
 ---
 
 ## 13. Open questions
@@ -411,9 +420,11 @@ Not yet measured: the test set, other Gemini models, Groq, run-to-run variation 
 
 ### Progress summary (2026-10-20)
 
-The full path works end to end and is covered by tests: 92 backend tests (also run against PostgreSQL), 98 frontend tests, and 21 browser tests in real Chromium. The review screen follows the approved design (Stone palette, collapsible form list, large form image, zoom, magnifier, expanded view, inline editing, one-click confirm). Bugs found by real use and by the browser tests were fixed: sideways scans (orientation), flags that could not be cleared (ADR-017), the duplicate-upload notice, and a closed form list leaving a 1px line.
+The full path works end to end and is covered by tests: 159 backend tests (the database ones also run against PostgreSQL), 154 frontend tests, and 37 browser tests in real Chromium. The review screen follows the approved design (Stone palette, collapsible form list, large form image, zoom, magnifier, expanded view, inline editing, one-click confirm). Bugs found by real use and by the browser tests were fixed: sideways scans (orientation), flags that could not be cleared (ADR-017), the duplicate-upload notice, and a closed form list leaving a 1px line.
 
-Open, in the order I would take them: (1) run the test set and compare Gemini models on the same pages, once the daily quota allows; (2) the records screen with date and sender filters, and export; (3) template hints and a second look at uncertain fields, if the measurements say they are worth it; (4) pre-processed demo results as the safety net; (5) the final summary (approach, limitations, what a real lab needs).
+The records screen (filters, paging, totals), the export, and the accuracy-report screen are built.
+
+Open, in the order I would take them: (1) run the test set and compare Gemini models on the same pages, once the daily quota allows; the accuracy screen then shows the comparison; (2) quality work that costs no quota: a stricter rule for calling an ID verified (a random 9-digit number passes the check digit about 10% of the time, so a single clean read is not enough), and better barcode decoding; (3) template hints and a second look at uncertain fields, if the measurements say they are worth it; (4) pre-processed demo results as the safety net; (5) the final summary (approach, limitations, what a real lab needs).
 
 ### Day 1
 - [x] Project setup: folder structure (backend, venv, requirements, .gitignore, .env.example)
@@ -437,7 +448,7 @@ Open, in the order I would take them: (1) run the test set and compare Gemini mo
 - [x] Fallback: a chain of Gemini models on quota errors, and a second provider on 429 (the second provider is untested against the real service)
 - [x] Upload screen
 - [x] Review table and single-form screen (attach and split forms: not built, not needed by the samples)
-- [ ] Records screen with filtering (the form list has search and a needs-review filter; date and sender filters and export are not built)
+- [x] Records screen with filtering: search by name, ID or number; status, sender and received-date filters; paging with a real total
 - [~] Duplicate detection (hash and warnings done in the API and the form screen; the upload notice is tested)
 - [ ] Running the evaluation on the test set
 - [x] README, run instructions and test instructions (the final summary of approach, limitations and lab requirements is still to write)
@@ -445,6 +456,10 @@ Open, in the order I would take them: (1) run the test set and compare Gemini mo
 - [ ] Rehearsing the demo scenario
 
 ### Added along the way
+- [x] Export of the filtered records to Excel and CSV, with a guard against formulas in form text (ADR-018)
+- [x] Accuracy-report screen fed by saved evaluation reports (ADR-018)
+- [x] A processed page is never processed again, so a record's corrections always stay tied to the model answer they corrected
+- [x] A document with no pages is never reported as done (found by a flaky browser test)
 - [x] Human confirmation of flagged fields (ADR-017)
 - [x] Quota-aware retries and a model fallback list (ADR-003)
 - [x] Test suites: backend (pytest), frontend (Vitest and Testing Library), browser (Playwright, including sideways and upside-down scans)

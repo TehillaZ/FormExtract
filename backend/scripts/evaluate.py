@@ -22,7 +22,9 @@ import cv2
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.config import settings  # noqa: E402
-from app.evaluation import DATA, FIELDS, FieldStats, format_report, load_split, load_truth, score_record  # noqa: E402
+from app.evaluation import (  # noqa: E402
+    DATA, FIELDS, FieldStats, build_report, format_report, load_split, load_truth, save_report, score_record,
+)
 from app.pipeline.barcodes import decode_barcodes  # noqa: E402
 from app.pipeline.extract import build_record  # noqa: E402
 from app.pipeline.orientation import correct_quarter_turn  # noqa: E402
@@ -63,6 +65,7 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--cached-only", action="store_true", help="score only pages already in the cache")
     ap.add_argument("--force", action="store_true", help="ignore the cache and call the API again")
     ap.add_argument("--no-orient", action="store_true", help="skip orientation correction (to measure its effect)")
+    ap.add_argument("--no-save", action="store_true", help="do not save a report for the accuracy screen")
     return ap.parse_args()
 
 
@@ -112,6 +115,14 @@ async def main() -> None:
     print(format_report(stats))
     if call_seconds:
         print(f"avg latency {sum(call_seconds) / len(call_seconds):.1f}s over {len(call_seconds)} calls")
+    if args.pages or args.no_save:
+        print("(no report saved)" + ("" if args.no_save else ": a hand-picked page list is not a split"))
+    else:   # a whole split (or everything): keep the result for the accuracy screen
+        report = build_report(
+            tag=tag, provider=provider.name, model=getattr(provider, "model", ""), prompt_id=prompt_id,
+            oriented=not args.no_orient, checksum_mode=settings.id_checksum_mode, split=args.split or "all",
+            pages_scored=len(pages) - len(failed), pages_failed=len(failed), stats=stats)
+        print("report saved:", save_report(report))
     for page, error in failed:
         print("FAILED", page, error)
 

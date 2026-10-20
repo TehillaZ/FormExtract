@@ -215,3 +215,12 @@ def test_a_page_that_is_being_processed_is_still_refused(client):
 
 def test_reprocessing_an_unknown_page_is_not_found(client):
     assert client.post(f"/pages/{uuid.uuid4()}/reprocess").status_code == 404
+
+
+def test_a_document_without_pages_is_not_done():
+    """A status read can catch a document before its pages exist; "done" must not be true for zero pages,
+    or the screen stops polling and shows "0 of 0 pages" forever."""
+    from app.api.schemas import DocumentStatus
+    from app.db.models import Document
+    status = DocumentStatus.of(Document(id=uuid.uuid4(), filename="x.png", file_hash="h", pages=[]))
+    assert status.pages == [] and status.done is False

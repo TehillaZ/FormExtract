@@ -1,0 +1,44 @@
+{
+  "tag": "gemini-gemini-2.5-flash-6e6567",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "prompt_id": "6e6567",
+  "oriented": false,
+  "checksum_mode": "strict",
+  "split": "dev",
+  "created_at": "2026-10-20T22:08:49Z",
+  "pages_scored": 21,
+  "pages_failed": 0,
+  "fields": {
+    "id_number": {
+      "pages": 21,
+      "correct": 7,
+      "flagged": 11,
+      "silent_errors": 4
+    },
+    "central_numbers": {
+      "pages": 21,
+      "correct": 14,
+      "flagged": 8,
+      "silent_errors": 0
+    },
+    "received_date": {
+      "pages": 21,
+      "correct": 12,
+      "flagged": 20,
+      "silent_errors": 0
+    },
+    "sender": {
+      "pages": 21,
+      "correct": 14,
+      "flagged": 7,
+      "silent_errors": 0
+    },
+    "commitment_numbers": {
+      "pages": 21,
+      "correct": 16,
+      "flagged": 18,
+      "silent_errors": 0
+    }
+  }
+}

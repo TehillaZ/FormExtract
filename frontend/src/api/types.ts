@@ -30,6 +30,7 @@ export interface CommitmentRecord {
   sender: Field
   commitment_numbers: Field[]
   status: 'pending' | 'approved'
+  approved_at: string | null
   corrections: Correction[]
   duplicate_warnings: string[]
 }
@@ -57,3 +58,31 @@ export interface ApproveCleanResult {
 
 /** What a PATCH accepts: a text per scalar field, a list per list field. */
 export type FieldChanges = Record<string, string | string[] | null>
+
+export interface FieldResult {
+  pages: number
+  correct: number
+  flagged: number
+  silent_errors: number   // wrong and not flagged
+}
+
+export interface EvaluationReport {
+  tag: string
+  provider: string
+  model: string
+  prompt_id: string
+  oriented: boolean
+  checksum_mode: string
+  split: 'dev' | 'test' | 'all'
+  created_at: string
+  pages_scored: number
+  pages_failed: number
+  fields: Record<string, FieldResult>
+}
+
+export interface EvaluationOverview {
+  reports: EvaluationReport[]
+  pages: number       // pages with a hand-verified answer
+  dev_pages: number
+  test_pages: number
+}

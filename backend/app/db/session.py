@@ -16,7 +16,12 @@ def init_db(url: str | None = None) -> sa.Engine:
     """Create the engine and tables. Tests pass sqlite://; runtime uses DATABASE_URL (PostgreSQL)."""
     global _engine, _factory
     url = url or settings.database_url
-    kw = {"poolclass": sa.pool.StaticPool, "connect_args": {"check_same_thread": False}} if url.startswith("sqlite") else {}
+    kw: dict = {}
+    if url.startswith("sqlite"):
+        in_memory = url in ("sqlite://", "sqlite:///:memory:")
+        kw["connect_args"] = {"check_same_thread": False, "timeout": 30}
+        if in_memory:
+            kw["poolclass"] = sa.pool.StaticPool   # the database lives in the connection, so everyone must share it
     _engine = sa.create_engine(url, **kw)
     Base.metadata.create_all(_engine)
     _factory = sessionmaker(_engine, expire_on_commit=False)

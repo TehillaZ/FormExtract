@@ -4,24 +4,32 @@ Same app, same pipeline, same database code as production, with three difference
 repeatable and cannot touch real data or spend vision-API quota:
   * the database is in memory (SQLite) and images go to a temporary folder;
   * the vision model is replaced by a scripted provider whose answer depends only on the uploaded image's width;
-  * POST /__test__/reset empties everything between tests. This endpoint exists only in this module.
+  * POST /__test__/reset empties everything between tests, and POST /__test__/seed adds many records at once.
+    Both exist only in this module;
+  * the accuracy screen reads two saved reports from a temporary folder instead of the real data/ directory.
 
 Run:  python -m uvicorn e2e.server:app --port 8100
 """
 from __future__ import annotations
 
+import json
 import shutil
 import tempfile
+from datetime import UTC, datetime
 from pathlib import Path
 
-from app.api.main import app
+from app.api.main import app, get_evaluation_store
+from app.db import repo
 from app.db.models import Base
 from app.db.session import init_db
+from app.evaluation import EvaluationStore, FieldStats, build_report, save_report
+from app.pipeline.extract import build_record
 from app.schemas import RawExtraction, RawValue as V
 from app.storage import LocalStorage, set_storage
 
-engine = init_db("sqlite://")
 storage_dir = Path(tempfile.mkdtemp(prefix="formextract-e2e-"))
+db_dir = Path(tempfile.mkdtemp(prefix="formextract-e2e-db-"))          # apart from the images, which reset() clears
+engine = init_db(f"sqlite:///{db_dir / 'e2e.db'}")   # a file, not memory: concurrent requests need their own connections
 set_storage(LocalStorage(storage_dir))
 
 
@@ -99,6 +107,46 @@ class ScriptedProvider:
 
 provider = ScriptedProvider()
 app.state.providers = (provider, None)
+
+
+# ---- the accuracy screen: two saved reports, and a ground truth of 10 pages (8 development, 2 held out) ----------
+
+def _stats(**fields: tuple[int, int, int, int]) -> dict[str, FieldStats]:
+    return {name: FieldStats(*numbers) for name, numbers in fields.items()}
+
+
+_workdir = Path(tempfile.mkdtemp(prefix="formextract-e2e-eval-"))
+_reports_dir = _workdir / "reports"
+for _model, _prompt, _id_stats, _day in (("model-a", "abc123", (8, 3, 5, 2), 20), ("model-b", "def456", (8, 5, 4, 0), 19)):
+    _report = build_report(
+        tag=f"gemini-{_model}-{_prompt}", provider="gemini", model=_model, prompt_id=_prompt, oriented=True,
+        checksum_mode="strict", split="dev", pages_scored=8, pages_failed=0,
+        stats=_stats(id_number=_id_stats, central_numbers=(8, 6, 3, 0), received_date=(8, 4, 7, 0),
+                     sender=(8, 6, 2, 0), commitment_numbers=(8, 7, 3, 1)))
+    _report.created_at = datetime(2026, 10, _day, 12, 0, tzinfo=UTC)   # fixed, so model-a is always the newest
+    save_report(_report, _reports_dir)
+(_workdir / "truth.jsonl").write_text("\n".join(json.dumps({"page": f"p{i}"}) for i in range(10)), encoding="utf-8")
+(_workdir / "split.json").write_text(json.dumps({"dev": [f"p{i}" for i in range(8)], "test": ["p8", "p9"]}), encoding="utf-8")
+app.dependency_overrides[get_evaluation_store] = lambda: EvaluationStore(
+    _reports_dir, _workdir / "truth.jsonl", _workdir / "split.json")
+
+
+@app.post("/__test__/seed")
+def seed(n: int = 30, approved: int = 0) -> dict:
+    """Add `n` records named דמה00, דמה01 ... straight into the database; the first `approved` are approved."""
+    from app.db.session import session_scope
+    with session_scope() as s:
+        for i in range(n):
+            raw = RawExtraction(
+                first_name=V(value=f"דמה{i:02d}", source="printed"), last_name=V(value="בדיקה", source="printed"),
+                id_numbers=[V(value=f"0{i:08d}", source="printed")],
+                commitment_numbers=[V(value=f"90{i:07d}", source="printed")],
+                sender=V(value="כללית" if i % 2 == 0 else "מכבי", source="printed", highlighted=True),
+                stamp_date=V(value="18/06/2026", source="stamp"))
+            rec = repo.save_record(s, build_record(raw, []))
+            if i < approved:
+                repo.approve_record(s, rec.id)
+    return {"ok": True, "n": n}
 
 
 @app.get("/__test__/calls")

@@ -82,3 +82,43 @@ describe('App', () => {
     expect(within(header()).getByRole('tab', { name: 'העלאה' })).toBeInTheDocument()
   })
 })
+
+describe('App: records and accuracy screens', () => {
+  it('has tabs for records and the accuracy report', async () => {
+    await openApp()
+    expect(screen.getByRole('tab', { name: 'רשומות' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'דוח דיוק' })).toBeInTheDocument()
+  })
+
+  it('opens the form behind a record picked on the records screen', async () => {
+    const { user } = await openApp()
+    await user.click(screen.getByRole('tab', { name: 'רשומות' }))
+    await user.click(await screen.findByRole('button', { name: /רונן לוי/ }))
+    expect(screen.getByRole('tab', { name: 'טופס', selected: true })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('רונן לוי')
+  })
+
+  it('a record approved elsewhere shows as approved on the records screen', async () => {
+    const { user } = await openApp()
+    await user.click(screen.getByRole('tab', { name: 'רשומות' }))
+    await screen.findByRole('button', { name: /דנה כהן/ })
+    await user.click(screen.getByRole('tab', { name: 'טבלה' }))
+    await user.click(screen.getByRole('button', { name: /אשרי את כל השורות התקינות/ }))
+    await waitFor(() => expect(header()).toHaveTextContent('1 ממתינים'))
+
+    await user.click(screen.getByRole('tab', { name: 'רשומות' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: /דנה כהן/ })).toHaveTextContent('מאושר'))
+  })
+
+  it('the accuracy report works even when the records cannot be loaded', async () => {
+    const api = installFakeApi([])
+    api.evaluation = { reports: [], pages: 48, dev_pages: 34, test_pages: 14 }
+    const realFetch = globalThis.fetch
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
+      String(input).startsWith('/api/records') ? Promise.reject(new TypeError('down')) : realFetch(input, init)))
+    renderWithClient(<App />)
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('tab', { name: 'דוח דיוק' }))
+    expect(await screen.findByText('עדיין אין דוחות דיוק.')).toBeInTheDocument()
+  })
+})

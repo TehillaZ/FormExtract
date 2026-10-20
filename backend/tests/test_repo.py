@@ -167,3 +167,31 @@ def test_confirming_every_flagged_field_makes_the_record_clean(s):
     assert not out.needs_review()
     approved, skipped = repo.approve_clean(s)
     assert approved == [r.id] and skipped == []
+
+
+# ---- search by name and counting (these use database-specific JSON queries: run them on PostgreSQL too) ----
+
+def named(first, last, commitment):
+    raw = RawExtraction(first_name=V(value=first, source="printed"), last_name=V(value=last, source="printed"),
+                        commitment_numbers=[V(value=commitment, source="printed")])
+    return build_record(raw, [])
+
+
+def test_search_finds_people_by_first_or_last_name_or_part_of_one(s):
+    repo.save_record(s, named("רונן", "פלג", "111111111"))
+    repo.save_record(s, named("דנה", "כהן", "222222222"))
+    assert [r.last_name.value for r in repo.list_records(s, q="פלג")] == ["פלג"]
+    assert [r.first_name.value for r in repo.list_records(s, q="דנ")] == ["דנה"]
+    assert len(repo.list_records(s, q="zzz")) == 0
+
+
+def test_count_ignores_paging_and_follows_the_filters(s):
+    for i in range(5):
+        repo.save_record(s, named("דנה", "כהן", f"30000000{i}"))
+    approved = repo.save_record(s, named("רונן", "פלג", "400000000"))
+    repo.approve_record(s, approved.id)
+    assert repo.count_records(s) == 6
+    assert len(repo.list_records(s, limit=2)) == 2 and repo.count_records(s) == 6
+    assert repo.count_records(s, status="approved") == 1
+    assert repo.count_records(s, q="דנה") == 5
+    assert repo.count_records(s, q="דנה", status="approved") == 0

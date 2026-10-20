@@ -16,5 +16,6 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     css: false,
     restoreMocks: true,
+    testTimeout: 15_000,   // simulated browser plus real clicks: the 5s default is too tight when files run in parallel
   },
 })

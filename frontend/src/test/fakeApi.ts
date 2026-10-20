@@ -1,6 +1,6 @@
 import { vi } from 'vitest'
-import type { CommitmentRecord, DocumentStatus, Field } from '../api/types'
-import { FIELD_DEFS } from '../lib/fields'
+import type { CommitmentRecord, DocumentStatus, EvaluationOverview, Field } from '../api/types'
+import { FIELD_DEFS, displayValue, fieldsOf } from '../lib/fields'
 import { field } from './factories'
 
 export interface Call {
@@ -17,11 +17,31 @@ export interface FakeApi {
   patchError: string | null       // makes PATCH answer 422 with this message
   approveError: string | null     // makes approve answer 409 with this message
   uploadError: string | null      // makes the upload answer 400 with this message
+  senders: string[]
+  evaluation: EvaluationOverview
   called: (method: string, pathPart: string) => Call[]
 }
 
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
+const json = (body: unknown, status = 200, headers: Record<string, string> = {}) =>
+  new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', ...headers } })
+
+/** Everything searchable about a record, like the server's search over names, ID and numbers. */
+const searchable = (r: CommitmentRecord) =>
+  FIELD_DEFS.map((d) => displayValue(d, fieldsOf(r, d))).join(' ').toLowerCase()
+
+/** The server's record filters and paging, with the total sent in X-Total-Count. */
+function listRecords(records: CommitmentRecord[], search: URLSearchParams): Response {
+  const q = (search.get('q') ?? '').trim().toLowerCase()
+  const matching = records.filter((r) =>
+    (!search.get('status') || r.status === search.get('status')) &&
+    (!search.get('sender') || r.sender.value === search.get('sender')) &&
+    (!search.get('from') || (r.received_date.value ?? '') >= search.get('from')!) &&
+    (!search.get('to') || (r.received_date.value ?? '9999') <= search.get('to')!) &&
+    (!q || searchable(r).includes(q)))
+  const offset = Number(search.get('offset') ?? 0)
+  const limit = Number(search.get('limit') ?? 200)
+  return json(matching.slice(offset, offset + limit), 200, { 'X-Total-Count': String(matching.length) })
+}
 
 /** What the backend does to a field a person saves: a different value is a correction, the same value on a
  *  flagged field is a confirmation. Mirrors backend/app/db/repo.py closely enough for UI tests. */
@@ -55,6 +75,7 @@ const normalise = (key: string) => (v: string) => {
 export function installFakeApi(initial: CommitmentRecord[] = []): FakeApi {
   const api: FakeApi = {
     records: structuredClone(initial), documents: {}, uploadResult: [], calls: [], patchError: null, approveError: null, uploadError: null,
+    senders: ['כללית', 'מכבי', 'מאוחדת', 'לאומית'], evaluation: { reports: [], pages: 0, dev_pages: 0, test_pages: 0 },
     called: (method, part) => api.calls.filter((c) => c.method === method && c.path.includes(part)),
   }
   const replace = (rec: CommitmentRecord) => { api.records = api.records.map((r) => (r.id === rec.id ? rec : r)) }
@@ -65,7 +86,9 @@ export function installFakeApi(initial: CommitmentRecord[] = []): FakeApi {
     const body = typeof init?.body === 'string' ? JSON.parse(init.body) : init?.body
     api.calls.push({ method, path, body })
 
-    if (method === 'GET' && path.startsWith('/records')) return json(api.records)
+    if (method === 'GET' && path.startsWith('/records?')) return listRecords(api.records, new URL(path, 'http://x').searchParams)
+    if (method === 'GET' && path === '/senders') return json(api.senders)
+    if (method === 'GET' && path === '/evaluation') return json(api.evaluation)
     if (method === 'POST' && path === '/records/approve-clean') {
       const clean = api.records.filter((r) => r.status === 'pending' && r.id && !hasFlag(r))
       clean.forEach((r) => replace({ ...r, status: 'approved' }))

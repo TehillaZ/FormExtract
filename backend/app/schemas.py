@@ -98,6 +98,7 @@ class CommitmentRecord(BaseModel):
     sender: Field = PField(default_factory=Field)
     commitment_numbers: list[Field] = []
     status: Literal["pending", "approved"] = "pending"
+    approved_at: datetime | None = None
     corrections: list[Correction] = []
     duplicate_warnings: list[str] = []   # filled when read, never stored
 
