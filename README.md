@@ -21,7 +21,7 @@ Work in progress (hackathon). See the checklist in section 14 of the plan.
 | Evaluation script against hand-verified ground truth, dev/test split | done |
 | Database layer (SQLAlchemy): save, search, correct, approve, duplicates | done, tested on SQLite only |
 | REST API (FastAPI), background processing | not started |
-| Orientation detection (Tesseract) | not started, Tesseract not installed |
+| Orientation: sideways pages turned locally, upside-down pages flipped after a model check (no Tesseract needed) | done; effect on accuracy measured on 2 pages only |
 | Provider fallback on 429, template hints, second look at uncertain fields | not started |
 | Frontend: upload, review table, single-form review screen (collapsible form list, zoom, lens, expanded view, inline editing) | done, first version |
 | Frontend: records screen with date/sender filters, export | not started |
@@ -99,11 +99,11 @@ Learned from the samples rather than the task text (PLAN ADR-013):
 
 ## Known limitations
 
-- Free-tier vision APIs are rate-limited (about 20 pages per session on Gemini in testing), so a 30-page batch cannot yet run in one go. The plan is a fallback provider and pre-processed demo results.
+- The Gemini free tier allows **20 requests per day per model**. The provider walks a list of models (see `GEMINI_FALLBACK_MODELS`), which gives roughly 80 a day, but accuracy across those models has not been compared. Groq is blocked on the development network. Pre-processed demo results remain the safety net.
 - Handwritten names are never trusted: always flagged.
 - Two forms on one page, and forms spanning several pages, are not supported (none exist in the samples).
 - Accuracy numbers are on yellow-highlighted samples and are probably optimistic compared to real forms.
-- Orientation detection (90°/180° pages) still depends on the model flagging upside-down text.
+- Upside-down pages (180°) are only detected through the model's own flag, at the cost of one extra call per such page.
 
 ## Privacy
 

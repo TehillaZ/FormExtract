@@ -63,7 +63,7 @@ export function ExpandedViewer({ record, index, total, onPrev, onNext, onClose }
           const fields = fieldsOf(record, def)
           const flagged = fields.some(isFlagged)
           return (
-            <span key={def.key} className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 ${flagged ? 'border-warn-line bg-warn-soft' : 'border-edge bg-page'}`}>
+            <span key={def.key} data-flagged={flagged} className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 ${flagged ? 'border-warn-line bg-warn-soft' : 'border-edge bg-page'}`}>
               <span className={`h-2 w-2 rounded-full ${flagged ? 'bg-warn' : 'bg-accent'}`} />
               <span className="text-xs text-sub">{def.short}</span>
               <span className="text-sm font-semibold">{displayValue(def, fields) || '— לא נמצא'}</span>

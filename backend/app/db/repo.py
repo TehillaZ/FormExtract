@@ -13,7 +13,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.db.models import CorrectionRow, Record, RecordCentralNumber, RecordCommitmentNumber
-from app.pipeline.extract import NOT_FOUND
 from app.schemas import CommitmentRecord, Correction, Field
 from app.validation.manual import LIST_RULES, SCALAR_FIELDS, InvalidValue, clean_list, clean_scalar
 
@@ -21,6 +20,8 @@ __all__ = ["NotFound", "DuplicateCommitmentError", "InvalidValue", "save_record"
            "patch_record", "approve_record", "approve_clean"]
 
 MANUAL = "תוקן ידנית"
+CONFIRMED = "אושר ידנית"
+CONFIRMED_EMPTY = "אושר ידנית: אין בטופס"
 _WITH_CHILDREN = (selectinload(Record.commitment_numbers), selectinload(Record.central_numbers),
                   selectinload(Record.corrections))
 
@@ -48,9 +49,22 @@ def _sync_columns(row: Record, rec: CommitmentRecord) -> None:
     row.sender = rec.sender.value
     row.received_date = date.fromisoformat(rec.received_date.value) if rec.received_date.value else None
     row.needs_review = rec.needs_review()
-    row.central_numbers = [RecordCentralNumber(value=v) for v in dict.fromkeys(_values(rec.central_numbers))]
-    row.commitment_numbers = [RecordCommitmentNumber(value=v, status=row.status)
-                              for v in dict.fromkeys(_values(rec.commitment_numbers))]
+    _sync_numbers(row, rec)
+
+
+def _sync_numbers(row: Record, rec: CommitmentRecord) -> None:
+    """Keep the searchable number rows in step with the record. Rows are replaced only when the numbers
+    changed: replacing identical approved rows would briefly hold the same number twice and trip the
+    unique index (ADR-016)."""
+    central = list(dict.fromkeys(_values(rec.central_numbers)))
+    if [n.value for n in row.central_numbers] != central:
+        row.central_numbers = [RecordCentralNumber(value=v) for v in central]
+    commitment = list(dict.fromkeys(_values(rec.commitment_numbers)))
+    if [n.value for n in row.commitment_numbers] != commitment:
+        row.commitment_numbers = [RecordCommitmentNumber(value=v, status=row.status) for v in commitment]
+    else:
+        for n in row.commitment_numbers:
+            n.status = row.status   # the status mirror must follow the record (pending frees the number)
 
 
 def _to_record(row: Record) -> CommitmentRecord:
@@ -142,17 +156,30 @@ def list_records(s: Session, *, status: str | None = None, sender: str | None = 
 # ---- corrections --------------------------------------------------------------------------------
 
 def _manual(value: str | None, raw: str | None = None) -> Field:
+    """A value a person typed. Typing nothing means "this form has none": confirmed empty, not a missing field."""
     if value is None:
-        return Field(value=None, confidence="low", reasons=[NOT_FOUND])
+        return Field(value=None, raw_text=raw, confidence="high", source="manual", reasons=[CONFIRMED_EMPTY])
     return Field(value=value, raw_text=raw, confidence="high", source="manual", reasons=[MANUAL])
 
 
-def _apply_changes(rec: CommitmentRecord, changes: dict) -> list[tuple[str, str | None, str | None]]:
-    """Validate and apply typed changes to rec in place. Returns (field, old, new) for what really changed."""
+def _confirmed(value: str | None, raw: str | None = None) -> Field:
+    """A value a person looked at and saved unchanged: it stops being flagged."""
+    if value is None:
+        return Field(value=None, raw_text=raw, confidence="high", source="manual", reasons=[CONFIRMED_EMPTY])
+    return Field(value=value, raw_text=raw, confidence="high", source="manual", reasons=[CONFIRMED])
+
+
+def _apply_changes(rec: CommitmentRecord, changes: dict) -> tuple[list[tuple[str, str | None, str | None]], bool]:
+    """Validate and apply what a person saved to rec in place.
+
+    Returns (log, touched). `log` holds (field, old, new) for values that really changed. `touched` is also true
+    when an unchanged but flagged field was saved: that is a confirmation, not a correction, so it is not logged.
+    """
     unknown = set(changes) - set(SCALAR_FIELDS) - set(LIST_RULES)
     if unknown:
         raise InvalidValue("שדה לא מוכר: " + ", ".join(sorted(unknown)))
     log: list[tuple[str, str | None, str | None]] = []
+    touched = False
     for name, new in changes.items():
         if name in SCALAR_FIELDS:
             old: Field = getattr(rec, name)
@@ -160,24 +187,33 @@ def _apply_changes(rec: CommitmentRecord, changes: dict) -> list[tuple[str, str 
             if value != old.value:
                 setattr(rec, name, _manual(value, raw=old.raw_text))
                 log.append((name, old.value, value))
+                touched = True
+            elif old.confidence != "high":
+                setattr(rec, name, _confirmed(value, raw=old.raw_text))
+                touched = True
         else:
-            old_values = _values(getattr(rec, name))
+            old_fields: list[Field] = getattr(rec, name)
+            old_values = _values(old_fields)
             values = clean_list(name, list(new or []))
             if values != old_values:
                 setattr(rec, name, [_manual(v) for v in values] or [_manual(None)])
                 log.append((name, ", ".join(old_values) or None, ", ".join(values) or None))
-    return log
+                touched = True
+            elif any(f.confidence != "high" for f in old_fields):
+                setattr(rec, name, [_confirmed(v) for v in values] or [_confirmed(None)])
+                touched = True
+    return log, touched
 
 
 def patch_record(s: Session, record_id: uuid.UUID, changes: dict) -> CommitmentRecord:
-    """Apply human corrections. Each changed field is logged (old -> new) and becomes high-confidence/manual.
-    Nothing is logged when a typed value equals the stored one."""
+    """Apply what a person saved. A changed field is logged (old -> new) and becomes high-confidence/manual.
+    A flagged field saved unchanged is confirmed (high, manual) without a log entry."""
     row = _row(s, record_id)
     rec = _to_record(row)
-    log = _apply_changes(rec, changes)
-    if not log:
+    log, touched = _apply_changes(rec, changes)
+    if not touched:
         return get_record(s, record_id)
-    if row.status == "approved":   # an edited record must be approved again
+    if log and row.status == "approved":   # a real edit sends the record back for approval; a confirmation does not
         row.status, row.approved_at = "pending", None
     now = datetime.now(UTC)
     row.corrections.extend(CorrectionRow(field=f, old_value=o, new_value=n, at=now) for f, o, n in log)

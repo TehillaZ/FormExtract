@@ -19,7 +19,11 @@ from app.vision.prompt import SYSTEM_PROMPT, USER_PROMPT
 
 
 class RateLimited(Exception):
-    """Provider kept answering 429 after backoff."""
+    """The provider refused for lack of quota: it kept answering 429, or said the wait is too long to be worth it."""
+
+    def __init__(self, where: str, retry_after: float | None = None):
+        super().__init__(where)
+        self.retry_after = retry_after   # seconds the provider asked us to wait, when it said
 
 
 class VisionProvider(ABC):
@@ -65,8 +69,26 @@ async def _throttle(key: str) -> None:
         _last_call[key] = time.monotonic()
 
 
+MAX_WAIT_SECONDS = 90   # a longer "retry in ..." means a daily quota: waiting here would only stall the batch
+
+_RETRY_IN = re.compile(r"retry in (?:(\d+)h)?(?:(\d+)m)?(?:([\d.]+)s)?", re.IGNORECASE)
+
+
+def retry_after_seconds(response: httpx.Response) -> float | None:
+    """How long the provider says to wait: the Retry-After header, or "Please retry in 17h43m30.9s" in the body."""
+    header = response.headers.get("retry-after")
+    if header and header.isdigit():
+        return float(header)
+    match = _RETRY_IN.search(response.text)
+    if not match or not any(match.groups()):
+        return None
+    hours, minutes, seconds = match.groups()
+    return int(hours or 0) * 3600 + int(minutes or 0) * 60 + float(seconds or 0)
+
+
 async def post_with_backoff(client, url: str, *, retries: int = 5, **kw):
-    """POST, retrying on 429 / 5xx with exponential backoff (ADR-008)."""
+    """POST, retrying on 429 / 5xx with exponential backoff (ADR-008). A 429 that asks for a long wait
+    (an exhausted daily quota) raises RateLimited at once so the caller can move on to another model."""
     delay = 10.0
     host = httpx.URL(url).host
     for attempt in range(retries + 1):
@@ -75,13 +97,15 @@ async def post_with_backoff(client, url: str, *, retries: int = 5, **kw):
         if r.status_code not in (429, 500, 502, 503):
             r.raise_for_status()
             return r
+        asked = retry_after_seconds(r)
+        if r.status_code == 429 and asked is not None and asked > MAX_WAIT_SECONDS:
+            raise RateLimited(url, asked)
         if attempt == retries:
             break
-        retry_after = r.headers.get("retry-after")
-        await asyncio.sleep(float(retry_after) if retry_after and retry_after.isdigit() else delay)
+        await asyncio.sleep(asked if asked is not None else delay)
         delay = min(delay * 2, 60)
     if r.status_code == 429:
-        raise RateLimited(url)
+        raise RateLimited(url, retry_after_seconds(r))
     r.raise_for_status()
 
 

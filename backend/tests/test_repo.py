@@ -13,7 +13,10 @@ from app.schemas import RawExtraction, RawValue as V
 @pytest.fixture()
 def s():
     """In-memory SQLite by default; set TEST_DATABASE_URL to run the same tests on PostgreSQL."""
-    engine = session_mod.init_db(os.environ.get("TEST_DATABASE_URL", "sqlite://"))
+    url = os.environ.get("TEST_DATABASE_URL", "sqlite://")
+    if not url.startswith("sqlite") and not url.rsplit("/", 1)[-1].endswith("_test"):
+        pytest.fail("TEST_DATABASE_URL must name a database ending in _test: these tests drop every table")
+    engine = session_mod.init_db(url)
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     with session_mod._factory() as sess:
@@ -112,3 +115,55 @@ def test_listing_many_records_uses_a_constant_number_of_queries(s):
     finally:
         sa.event.remove(engine, "before_cursor_execute", tick)
     assert count <= 8   # main query + 3 eager loads + 2 duplicate lookups; was ~5 per record
+
+
+# ---- confirming: saving a flagged field unchanged means "I checked, it is right" ----------------
+
+def test_saving_a_flagged_field_unchanged_confirms_it_without_a_log_entry(s):
+    r = repo.save_record(s, make())
+    assert r.received_date.confidence == "medium"            # a stamp alone is not verified
+    out = repo.patch_record(s, r.id, {"received_date": "18/06/2026"})
+    assert out.received_date.value == "2026-06-18"
+    assert (out.received_date.confidence, out.received_date.source) == ("high", "manual")
+    assert out.received_date.reasons == ["אושר ידנית"]
+    assert out.corrections == []                              # nothing was corrected
+
+
+def test_saving_empty_for_a_missing_field_confirms_it_is_empty(s):
+    r = repo.save_record(s, make(commitment=None))
+    assert r.commitment_numbers[0].value is None and r.commitment_numbers[0].confidence == "low"
+    out = repo.patch_record(s, r.id, {"commitment_numbers": []})
+    only = out.commitment_numbers[0]
+    assert (only.value, only.confidence, only.reasons) == (None, "high", ["אושר ידנית: אין בטופס"])
+    assert out.corrections == []
+
+
+def test_saving_a_verified_field_unchanged_changes_nothing(s):
+    r = repo.save_record(s, make())
+    assert r.sender.confidence == "high"
+    out = repo.patch_record(s, r.id, {"sender": "כללית"})
+    assert (out.sender.confidence, out.sender.source) == (r.sender.confidence, r.sender.source)   # not marked manual
+    assert out.corrections == []
+
+
+def test_clearing_a_value_is_a_logged_correction_and_leaves_a_confirmed_empty_field(s):
+    r = repo.save_record(s, make(central="939376"))
+    out = repo.patch_record(s, r.id, {"central_numbers": []})
+    assert (out.central_numbers[0].value, out.central_numbers[0].confidence) == (None, "high")
+    assert [(c.field, c.old_value, c.new_value) for c in out.corrections] == [("central_numbers", "939376", None)]
+
+
+def test_a_confirmation_does_not_send_an_approved_record_back_to_pending(s):
+    r = repo.save_record(s, make())
+    repo.approve_record(s, r.id)
+    assert repo.patch_record(s, r.id, {"first_name": ""}).status == "approved"
+    assert repo.patch_record(s, r.id, {"first_name": "דנה"}).status == "pending"    # a real edit does
+
+
+def test_confirming_every_flagged_field_makes_the_record_clean(s):
+    r = repo.save_record(s, make())
+    assert r.needs_review()
+    out = repo.patch_record(s, r.id, {"first_name": "", "last_name": "", "received_date": "18/06/2026"})
+    assert not out.needs_review()
+    approved, skipped = repo.approve_clean(s)
+    assert approved == [r.id] and skipped == []

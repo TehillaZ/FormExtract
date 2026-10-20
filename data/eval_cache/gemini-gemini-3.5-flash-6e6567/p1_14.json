@@ -1,0 +1,57 @@
+{
+ "template": "other",
+ "is_continuation": false,
+ "text_upside_down": true,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "פאטמה",
+  "source": "handwritten",
+  "highlighted": true
+ },
+ "last_name": {
+  "value": "חסן",
+  "source": "handwritten",
+  "highlighted": true
+ },
+ "id_numbers": [
+  {
+   "value": "11223344",
+   "source": "handwritten",
+   "highlighted": false
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "944963",
+   "source": "sticker",
+   "highlighted": true
+  },
+  {
+   "value": "944964",
+   "source": "sticker",
+   "highlighted": true
+  }
+ ],
+ "received_date": {
+  "value": "05-08-2026",
+  "source": "stamp",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": "05-08-2026",
+  "source": null,
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": "4-8-26",
+  "source": null,
+  "highlighted": false
+ },
+ "sender": {
+  "value": "א.מ.ר.י. מרכז רפואי",
+  "source": "printed",
+  "highlighted": false
+ },
+ "other_senders": [],
+ "commitment_numbers": []
+}

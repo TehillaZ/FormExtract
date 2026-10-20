@@ -295,6 +295,7 @@ Main tables: `documents` (the uploaded file), `pages`, `records`, `record_commit
 - **[OPEN]**: the result of the experiment, and timing a stack of 30 pages. Status: only Gemini has been measured. Groq is blocked by the current network filter (NetFree, HTTP 418), so the comparison has to be run from another network.
 - Consequences: low rate limits, which means limited parallel processing and handling of 429 errors. On the free tier the input may be used by the provider (see section 11). Two providers may give different accuracy, so evaluation reports each provider separately.
 - **Demo backup:** the demo stack is processed in advance and saved in the DB. If there is a rate limit during the demo, the saved results are shown.
+- **Quota finding (day 2):** the Gemini free tier allows **20 requests per day per model** (the 429 says `limit: 20`). One model therefore cannot process a 40-page stack in a day. Quotas are per model, so `GeminiProvider` walks a list of models (`GEMINI_MODEL` then `GEMINI_FALLBACK_MODELS`), skipping a model that says "retry in 17h". A 429 that asks for a wait over 90 seconds is treated as an exhausted daily quota and is not waited out. With four models that is about 80 requests a day, which covers a 40-page batch plus retries, but only if those models give similar accuracy; this has not been measured. Models differ in speed (some newer ones took over a minute for a call). Using one key with several models is within the terms of service; several keys or accounts would not be (see above).
 
 ### ADR-004: PostgreSQL
 - Rationale: familiar, and suitable for a future cloud deployment with managed PostgreSQL.
@@ -316,7 +317,7 @@ Main tables: `documents` (the uploaded file), `pages`, `records`, `record_commit
 
 ### ADR-009: Orientation detection in two stages
 - Decision: Tesseract OSD, which is local, free and fast, rotates before the model call. The single model call also returns "does the text look upside down". If so, the page is rotated 180 degrees and sent again. This is the only case where a page costs an additional call because of orientation.
-- Status: Tesseract is not installed yet. Until then, only the model's upside-down flag is available.
+- **Status (implemented without Tesseract):** `app/pipeline/orientation.py` detects sideways pages locally by measuring whether character-sized blobs line up in rows or in columns (after removing long lines and barcodes). On the 48 samples it separated the 11 sideways pages (score 2.9 and up) from the 37 upright ones (0.8 and below) with no errors, so the threshold is 1.5. Sideways pages are turned 90 degrees clockwise; if that leaves them upside down, the model's `text_upside_down` answer triggers one flip and one more call. Roughly half of the sideways samples need the flip, since the scanner rotates inconsistently. If both orientations are called upside down, the original is kept. The corrected image is what the reviewer sees. Tesseract OSD remains an option, but is not needed.
 
 ### ADR-010: Duplicates
 - Decision: an identical file hash is a certain duplicate, and the file is not processed again. A central number that already exists in the DB raises a warning on the record, but does not block.
@@ -362,6 +363,12 @@ Main tables: `documents` (the uploaded file), `pages`, `records`, `record_commit
 - **[OPEN]**: can the same commitment number appear in two valid records (for example two forms for the same sample)? To ask the organizers.
 - Consequences: `status` is copied to the child table and must stay in sync with the record.
 
+### ADR-017: A person's confirmation clears a flag
+- Context: in real use, saving a flagged value without changing it (for example a correct handwritten name) left the field orange, so a reviewer could never clear a flag by checking it. A form that truly has no commitment number could never become clean either.
+- Decision: saving a flagged field **unchanged** is a confirmation: the field becomes high-confidence with source `manual` and the reason "אושר ידנית", and no correction is logged. Saving an **empty** value for a missing field confirms that the form has none ("אושר ידנית: אין בטופס"). A changed value is still a logged correction ("תוקן ידנית"). Saving an already verified field changes nothing. Editing an approved record sends it back to pending; confirming does not.
+- UI: a flagged row has a one-click check button (confirm as is) next to the edit action.
+- Consequences: "approve all clean rows" can now include forms a person has checked. The humans' judgment overrides checks such as the ID check digit, by design.
+
 ---
 
 ## 13. Open questions
@@ -391,7 +398,7 @@ Main tables: `documents` (the uploaded file), `pages`, `records`, `record_commit
 - [x] Checks on the samples: ID check digits (ADR-014), multi-page forms (ADR-015), barcodes (section 2.1)
 - [x] Seed of the sender list and matching to it (section 5.4)
 - [x] PDF and HEIC conversion to images, barcode decoding, image enhancement (perspective, deskew, contrast)
-- [ ] Orientation detection and rotation (needs Tesseract with Hebrew installed)
+- [x] Orientation detection and rotation (local detection plus a model-assisted flip, no Tesseract; ADR-009)
 - [~] Basic extraction in one call with structured output, and a comparison experiment between the two providers (Gemini measured on 21 dev pages; Groq not yet)
 - [x] Normalization and validations
 - [x] Save to DB and basic API (FastAPI: upload, status, records, patch, approve, approve-clean, images)

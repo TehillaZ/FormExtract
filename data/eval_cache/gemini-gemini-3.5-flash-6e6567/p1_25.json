@@ -1,0 +1,73 @@
+{
+ "template": "hospital_screenshot",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "last_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "1223344",
+   "source": "handwritten",
+   "highlighted": true
+  },
+  {
+   "value": "30778506",
+   "source": "printed",
+   "highlighted": false
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "948062",
+   "source": "handwritten",
+   "highlighted": false
+  }
+ ],
+ "received_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "sender": {
+  "value": "לאומית",
+  "source": "printed",
+  "highlighted": false
+ },
+ "other_senders": [],
+ "commitment_numbers": [
+  {
+   "value": "260005102632",
+   "source": "printed",
+   "highlighted": false
+  },
+  {
+   "value": "260005102611",
+   "source": "printed",
+   "highlighted": false
+  },
+  {
+   "value": "260005102644",
+   "source": "printed",
+   "highlighted": false
+  }
+ ]
+}

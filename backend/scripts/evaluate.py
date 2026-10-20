@@ -25,24 +25,32 @@ from app.config import settings  # noqa: E402
 from app.evaluation import DATA, FIELDS, FieldStats, format_report, load_split, load_truth, score_record  # noqa: E402
 from app.pipeline.barcodes import decode_barcodes  # noqa: E402
 from app.pipeline.extract import build_record  # noqa: E402
+from app.pipeline.orientation import correct_quarter_turn  # noqa: E402
+from app.pipeline.process import extract_oriented  # noqa: E402
 from app.schemas import RawExtraction  # noqa: E402
 from app.vision import get_provider  # noqa: E402
 from app.vision.prompt import SYSTEM_PROMPT, USER_PROMPT  # noqa: E402
 
 
-async def run_page(provider, name: str, limit: asyncio.Semaphore, cache_dir: Path, force: bool):
-    """Returns (raw extraction, barcodes, seconds spent calling the API; 0 for a cache hit)."""
+async def run_page(provider, name: str, limit: asyncio.Semaphore, cache_dir: Path, force: bool, orient: bool):
+    """Returns (raw extraction, barcodes, seconds spent calling the API; 0 for a cache hit).
+    With `orient`, the page goes through the same orientation steps as the real pipeline."""
     cache = cache_dir / f"{name}.json"
     img = cv2.imread(str(DATA / "pages" / f"{name}.png"))
-    barcodes = [b.text for b in decode_barcodes(img)]
     if cache.exists() and not force:
-        return RawExtraction.model_validate_json(cache.read_text(encoding="utf-8")), barcodes, 0.0
+        raw = RawExtraction.model_validate_json(cache.read_text(encoding="utf-8"))
+        seen = correct_quarter_turn(img)[0] if orient else img   # barcodes are read from the turned page
+        return raw, [b.text for b in decode_barcodes(seen)], 0.0
     async with limit:
         started = time.perf_counter()
-        raw = await provider.extract(img)
+        if orient:
+            upright, _ = correct_quarter_turn(img)
+            raw, _, final = await extract_oriented(upright, provider, None)
+        else:
+            raw, final = await provider.extract(img), img
         seconds = time.perf_counter() - started
     cache.write_text(raw.model_dump_json(indent=1), encoding="utf-8")
-    return raw, barcodes, seconds
+    return raw, [b.text for b in decode_barcodes(final)], seconds
 
 
 def parse_args() -> argparse.Namespace:
@@ -54,6 +62,7 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--cached-only", action="store_true", help="score only pages already in the cache")
     ap.add_argument("--force", action="store_true", help="ignore the cache and call the API again")
+    ap.add_argument("--no-orient", action="store_true", help="skip orientation correction (to measure its effect)")
     return ap.parse_args()
 
 
@@ -75,12 +84,14 @@ async def main() -> None:
     provider = get_provider(args.provider, args.model)
     prompt_id = hashlib.sha1((SYSTEM_PROMPT + USER_PROMPT).encode()).hexdigest()[:6]
     tag = f"{provider.name}-{getattr(provider, 'model', '')}-{prompt_id}".replace("/", "_")
+    if not args.no_orient:
+        tag += "-oriented"
     cache_dir = DATA / "eval_cache" / tag
     cache_dir.mkdir(parents=True, exist_ok=True)
     pages = choose_pages(args, truth, cache_dir)
 
     limit = asyncio.Semaphore(settings.max_concurrency)
-    results = await asyncio.gather(*(run_page(provider, p, limit, cache_dir, args.force) for p in pages),
+    results = await asyncio.gather(*(run_page(provider, p, limit, cache_dir, args.force, not args.no_orient) for p in pages),
                                    return_exceptions=True)
 
     stats = {name: FieldStats() for name in FIELDS}

@@ -55,7 +55,7 @@ export function TableView({ records, onOpen }: { records: CommitmentRecord[]; on
               const flaggedCell = r.status === 'pending' && fields.some(isFlagged)
               const empty = !text
               return (
-                <div key={d.key} title={reasonText(fields) || undefined}
+                <div key={d.key} title={reasonText(fields) || undefined} data-flagged={flaggedCell} data-empty={empty}
                   className={`flex min-h-[34px] items-center truncate rounded-lg px-2.5 py-1.5 ${
                     empty ? 'border-[1.5px] border-dashed border-faint italic text-sub'
                       : flaggedCell ? 'border border-warn-line bg-warn-soft font-semibold text-warn-ink' : ''}`}>

@@ -1,28 +1,43 @@
 import { useState } from 'react'
 import { ApiError } from '../api/client'
 import { usePatchRecord } from '../api/hooks'
-import type { CommitmentRecord, Field } from '../api/types'
+import type { CommitmentRecord, Field, FieldChanges } from '../api/types'
 import { FIELD_DEFS, type FieldDef, displayValue, editValues, fieldsOf, flaggedCount, isFlagged, reasonText, recordTitle } from '../lib/fields'
 import { ConfidenceBadge, Icon } from './ui'
+
+/** What to save to say "this is right as it stands": the field's current values, unchanged. */
+function currentValues(def: FieldDef, fields: Field[]): FieldChanges {
+  const values = editValues(def, fields)
+  return def.list ? { [def.key]: values } : { [def.key]: values[0] ?? '' }
+}
 
 function FieldRow({ def, record }: { def: FieldDef; record: CommitmentRecord }) {
   const fields = fieldsOf(record, def)
   const flagged = fields.some(isFlagged)
   const [editing, setEditing] = useState(false)
+  const confirm = usePatchRecord(record.id)
 
   return (
-    <div className={`flex items-start gap-2 border-b border-[#eeeff1] px-4 py-2 ${flagged ? 'bg-warn-row shadow-[inset_-4px_0_0_var(--color-warn)]' : ''}`}>
+    <div className={`flex items-start gap-2 border-b border-[#eeeff1] px-4 py-2 ${flagged ? 'bg-warn-row shadow-[inset_-4px_0_0_var(--color-warn)]' : ''}`}
+      data-flagged={flagged}>
       <div className="w-[66px] shrink-0 pt-[2px] text-xs text-sub">{def.label}</div>
       {editing
         ? <FieldEditor def={def} record={record} fields={fields} onDone={() => setEditing(false)} />
-        : <ReadOnlyValue def={def} fields={fields} flagged={flagged} onEdit={() => setEditing(true)} />}
+        : <ReadOnlyValue def={def} fields={fields} flagged={flagged} onEdit={() => setEditing(true)}
+            onConfirm={() => confirm.mutate(currentValues(def, fields))} confirming={confirm.isPending}
+            error={confirm.error instanceof ApiError ? confirm.error.message : confirm.error ? 'השמירה נכשלה' : null} />}
     </div>
   )
 }
 
-function ReadOnlyValue({ def, fields, flagged, onEdit }: { def: FieldDef; fields: Field[]; flagged: boolean; onEdit: () => void }) {
+function ReadOnlyValue({ def, fields, flagged, onEdit, onConfirm, confirming, error }: {
+  def: FieldDef; fields: Field[]; flagged: boolean; onEdit: () => void
+  onConfirm: () => void; confirming: boolean; error: string | null
+}) {
   const text = displayValue(def, fields)
   const reason = reasonText(fields)
+  // a value the system rejected (a bad ID, a sender not on the list) is empty, but what was read helps the reviewer
+  const readAs = !text ? fields.map((f) => f.raw_text).find(Boolean) : null
   return (
     <>
       <button type="button" onClick={onEdit} title="לחצי לעריכה"
@@ -30,9 +45,23 @@ function ReadOnlyValue({ def, fields, flagged, onEdit }: { def: FieldDef; fields
         {text
           ? <div className="truncate text-[15px] font-semibold">{text}</div>
           : <div className="text-[15px] italic text-faint">— לא נמצא</div>}
+        {readAs && <div className="truncate text-[11.5px] leading-[1.3] text-sub">נקרא: {readAs}</div>}
         {reason && <div className="text-[11.5px] leading-[1.3] text-sub">{reason}</div>}
+        {error && <div role="alert" className="text-[11.5px] font-semibold text-warn-ink">{error}</div>}
       </button>
-      <ConfidenceBadge level={flagged ? 'low' : 'high'} />
+      {flagged
+        ? (
+          <div className="flex shrink-0 items-center gap-1.5">
+            <button type="button" onClick={onConfirm} disabled={confirming}
+              aria-label={text ? `אשרי שהערך של ${def.label} נכון` : `אשרי ש${def.label} ריק בטופס`}
+              title={text ? 'הערך נכון, אשרי' : 'השדה ריק בטופס, אשרי'}
+              className="flex h-6 w-6 items-center justify-center rounded-full border border-accent-line bg-accent-soft text-accent">
+              <Icon name="check" size={14} />
+            </button>
+            <ConfidenceBadge level="low" />
+          </div>
+        )
+        : <ConfidenceBadge level="high" />}
     </>
   )
 }

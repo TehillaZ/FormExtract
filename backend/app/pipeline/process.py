@@ -11,12 +11,15 @@ import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
+
 from app.config import settings
 from app.db import repo
 from app.db.models import Document, Page
 from app.db.session import session_scope
 from app.pipeline.barcodes import decode_barcodes
 from app.pipeline.extract import build_record
+from app.pipeline.orientation import correct_quarter_turn, flip_180
 from app.pipeline.preprocess import preprocess
 from app.schemas import RawExtraction
 from app.storage import get_storage
@@ -44,6 +47,20 @@ async def extract_with_fallback(img, primary: VisionProvider, fallback: VisionPr
         if fallback is None:
             raise
         return await fallback.extract(img), fallback.name
+
+
+async def extract_oriented(img: np.ndarray, primary: VisionProvider, fallback: VisionProvider | None
+                           ) -> tuple[RawExtraction, str, np.ndarray]:
+    """Extract once. If the model says the text is upside down, flip the page and extract once more (ADR-009).
+    If the flipped page is also called upside down, the flag is unreliable here: keep the first answer."""
+    raw, name = await extract_with_fallback(img, primary, fallback)
+    if not raw.text_upside_down:
+        return raw, name, img
+    flipped = flip_180(img)
+    raw_flipped, name_flipped = await extract_with_fallback(flipped, primary, fallback)
+    if raw_flipped.text_upside_down:
+        return raw, name, img
+    return raw_flipped, name_flipped, flipped
 
 
 @dataclass(frozen=True)
@@ -92,10 +109,11 @@ async def process_page(page_id: uuid.UUID, providers: Providers | None = None) -
     try:
         primary, fallback = providers or default_providers()
         original = storage.read_image(job.original_path)
-        pre = preprocess(original, is_photo=job.is_photo)
-        enhanced = storage.save_image(f"{job.document_id}/{job.number}_enhanced.png", pre.image)
-        barcodes = sorted({b.text for b in decode_barcodes(pre.image)} | {b.text for b in decode_barcodes(original)})
-        raw, provider_name = await extract_with_fallback(pre.image, primary, fallback)
+        upright, _ = correct_quarter_turn(original)   # sideways scans are common; upside down is left to the model
+        pre = preprocess(upright, is_photo=job.is_photo)
+        raw, provider_name, final = await extract_oriented(pre.image, primary, fallback)
+        enhanced = storage.save_image(f"{job.document_id}/{job.number}_enhanced.png", final)   # what the reviewer sees
+        barcodes = sorted({b.text for b in decode_barcodes(final)} | {b.text for b in decode_barcodes(original)})
         rec = build_record(raw, barcodes, low_quality=pre.low_quality, provider=provider_name, page_number=job.number)
         _store_success(job, rec, raw, enhanced, barcodes)
     except Exception as exc:   # one bad page must not stop the batch

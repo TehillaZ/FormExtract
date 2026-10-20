@@ -129,3 +129,12 @@ async def test_fallback_provider_used_only_after_rate_limit():
 def test_senders_list(client):
     s = client.get("/senders").json()
     assert "כללית" in s and len(s) >= 50
+
+
+def test_saving_a_flagged_field_unchanged_through_the_api_clears_its_flag(client):
+    upload(client)
+    rec = client.get("/records").json()[0]
+    assert rec["received_date"]["confidence"] == "medium"
+    out = client.patch(f"/records/{rec['id']}", json={"received_date": "18/06/2026"}).json()
+    assert out["received_date"]["confidence"] == "high" and out["received_date"]["source"] == "manual"
+    assert out["corrections"] == []
