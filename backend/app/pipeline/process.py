@@ -73,9 +73,11 @@ class _PageJob:
 
 
 def _claim(page_id: uuid.UUID) -> _PageJob | None:
+    """Take a page for processing. A page that already has a record is never processed again: its saved model
+    answer is what that record's corrections were made against, and a second run would replace it."""
     with session_scope() as s:
         page = s.get(Page, page_id)
-        if page is None:
+        if page is None or page.record_id is not None:
             return None
         page.status, page.error = "processing", None
         s.commit()

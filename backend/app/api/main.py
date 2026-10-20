@@ -65,10 +65,13 @@ def document_status(document_id: uuid.UUID, db: DB):
 
 @app.post("/pages/{page_id}/reprocess", response_model=PageStatus, status_code=202)
 def reprocess(page_id: uuid.UUID, background: BackgroundTasks, db: DB):
-    """Retry a page that failed (a crash or a rate limit)."""
+    """Retry a page that failed (a crash or a rate limit). A page that already produced a record is refused:
+    its saved model answer must stay what the record's corrections were made against."""
     page = db.get(Page, page_id)
     if page is None:
         raise HTTPException(404, "העמוד לא נמצא")
+    if page.record_id is not None:
+        raise HTTPException(409, "העמוד כבר עובד ויש לו רשומה, לא ניתן לעבד אותו מחדש")
     if page.status == "processing":
         raise HTTPException(409, "העמוד כבר בעיבוד")
     page.status, page.error = "pending", None

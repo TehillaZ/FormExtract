@@ -1,5 +1,7 @@
 """API tests with a fake vision provider: no network, no quota."""
 
+import uuid
+
 import cv2
 import numpy as np
 import pytest
@@ -7,7 +9,8 @@ from fastapi.testclient import TestClient
 
 import app.db.session as session_mod
 from app.api.main import app
-from app.pipeline.process import extract_with_fallback
+from app.db.models import Page
+from app.pipeline.process import extract_with_fallback, process_page
 from app.schemas import RawExtraction, RawValue as V
 from app.storage import LocalStorage, set_storage
 from app.vision import RateLimited
@@ -138,3 +141,77 @@ def test_saving_a_flagged_field_unchanged_through_the_api_clears_its_flag(client
     out = client.patch(f"/records/{rec['id']}", json={"received_date": "18/06/2026"}).json()
     assert out["received_date"]["confidence"] == "high" and out["received_date"]["source"] == "manual"
     assert out["corrections"] == []
+
+
+# ---- a processed page is never processed again --------------------------------------------------
+# Its saved model answer is what the record's corrections were made against. A second run would replace the
+# answer and create a second record, leaving the corrections tied to an answer that no longer exists.
+
+def page_state(page_id: str) -> dict:
+    with session_mod._factory() as s:
+        page = s.get(Page, uuid.UUID(page_id))
+        return {"status": page.status, "record_id": page.record_id, "raw": page.raw_extraction, "barcodes": page.barcodes}
+
+
+def uploaded_page(client) -> dict:
+    """Upload one form and return its page (id and record_id) once processed."""
+    doc = upload(client).json()[0]
+    return client.get(f"/documents/{doc['id']}").json()["pages"][0]
+
+
+def test_a_processed_page_cannot_be_reprocessed_and_keeps_its_model_answer_and_corrections(client):
+    provider = app.state.providers[0]
+    page = uploaded_page(client)
+    client.patch(f"/records/{page['record_id']}", json={"central_numbers": ["939999"]})   # a technician's correction
+    before_state = page_state(page["id"])
+    before_record = client.get(f"/records/{page['record_id']}").json()
+    assert before_state["raw"] and before_record["corrections"]
+
+    refused = client.post(f"/pages/{page['id']}/reprocess")
+
+    assert refused.status_code == 409
+    assert provider.calls == 1                                             # the model was not asked again
+    assert page_state(page["id"]) == before_state                          # same record, same saved model answer
+    assert client.get(f"/records/{page['record_id']}").json() == before_record   # corrections untouched
+    assert len(client.get("/records").json()) == 1                         # no second record
+
+
+@pytest.mark.asyncio
+async def test_processing_a_page_that_already_has_a_record_does_nothing(client):
+    provider = app.state.providers[0]
+    page = uploaded_page(client)
+    before = page_state(page["id"])
+
+    await process_page(uuid.UUID(page["id"]), app.state.providers)   # the pipeline entry point, bypassing the API
+
+    assert provider.calls == 1
+    assert page_state(page["id"]) == before
+    assert len(client.get("/records").json()) == 1
+
+
+def test_a_failed_page_can_still_be_retried_and_ends_with_exactly_one_record(client):
+    app.state.providers = (FakeProvider(fail=RuntimeError("boom")), None)
+    page = uploaded_page(client)
+    assert page["status"] == "error" and page["record_id"] is None
+
+    app.state.providers = (FakeProvider(), None)
+    assert client.post(f"/pages/{page['id']}/reprocess").status_code == 202
+
+    retried = page_state(page["id"])
+    assert retried["status"] == "ready" and retried["record_id"] is not None
+    records = client.get("/records").json()
+    assert [r["id"] for r in records] == [str(retried["record_id"])]
+
+
+def test_a_page_that_is_being_processed_is_still_refused(client):
+    app.state.providers = (FakeProvider(fail=RuntimeError("boom")), None)
+    page = uploaded_page(client)
+    with session_mod._factory() as s:
+        s.get(Page, uuid.UUID(page["id"])).status = "processing"
+        s.commit()
+    refused = client.post(f"/pages/{page['id']}/reprocess")
+    assert refused.status_code == 409 and "בעיבוד" in refused.json()["detail"]
+
+
+def test_reprocessing_an_unknown_page_is_not_found(client):
+    assert client.post(f"/pages/{uuid.uuid4()}/reprocess").status_code == 404

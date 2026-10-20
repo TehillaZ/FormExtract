@@ -322,7 +322,7 @@ Not yet measured: the test set, other Gemini models, Groq, run-to-run variation 
 - Context: processing a stack takes time, and the UI needs to update.
 - Decision: the upload returns a document ID at once. Processing runs in BackgroundTasks, and the status of each page is stored in the DB. React Query polls every 2 to 3 seconds until processing finishes.
 - Rationale: no Redis and no separate worker. Fits the scale of a hackathon.
-- Consequences: work in the middle of processing is lost if the server crashes, so a "reprocess" button is needed for a failed page. A cloud deployment requires a continuously running server, not serverless.
+- Consequences: work in the middle of processing is lost if the server crashes, so a "reprocess" button is needed for a failed page. Reprocessing is allowed only for a page that has no record yet: once a page has produced a record, its saved model answer is never overwritten, because the technician's corrections are made against that answer (and a second run would also have created a second record). A cloud deployment requires a continuously running server, not serverless.
 
 ### ADR-006: Images on disk, path in the DB, behind a storage interface
 - Rationale: the DB stays light. A `Storage` interface allows switching to cloud storage later without changing the rest of the code.
