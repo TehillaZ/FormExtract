@@ -1,0 +1,29 @@
+from __future__ import annotations
+
+import sqlalchemy as sa
+from sqlalchemy.orm import Session, sessionmaker
+
+from app.config import settings
+from app.db.models import Base
+
+_engine: sa.Engine | None = None
+_factory: sessionmaker[Session] | None = None
+
+
+def init_db(url: str | None = None) -> sa.Engine:
+    """Create the engine and tables. Tests pass sqlite://; runtime uses DATABASE_URL (PostgreSQL)."""
+    global _engine, _factory
+    url = url or settings.database_url
+    kw = {"poolclass": sa.pool.StaticPool, "connect_args": {"check_same_thread": False}} if url.startswith("sqlite") else {}
+    _engine = sa.create_engine(url, **kw)
+    Base.metadata.create_all(_engine)
+    _factory = sessionmaker(_engine, expire_on_commit=False)
+    return _engine
+
+
+def get_session():
+    """FastAPI dependency."""
+    if _factory is None:
+        init_db()
+    with _factory() as s:
+        yield s
