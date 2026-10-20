@@ -1,23 +1,28 @@
-"""Persistence for records: save, read, search, correct, approve, duplicate warnings (ADR-010, ADR-016)."""
+"""Persistence for records: save, read, search, correct, approve, duplicate warnings (ADR-010, ADR-016).
+
+Input validation lives in app.validation.manual; this module only talks to the database.
+"""
 from __future__ import annotations
 
-import re
 import uuid
-from datetime import date, datetime, timezone
+from collections import defaultdict
+from datetime import UTC, date, datetime
 
 import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.db.models import CorrectionRow, Record, RecordCentralNumber, RecordCommitmentNumber
-from app.pipeline.extract import NOT_FOUND, all_fields, normalize_date
+from app.pipeline.extract import NOT_FOUND
 from app.schemas import CommitmentRecord, Correction, Field
-from app.validation.israeli_id import normalize_id
-from app.validation.senders import match_sender
+from app.validation.manual import LIST_RULES, SCALAR_FIELDS, InvalidValue, clean_list, clean_scalar
 
-SCALAR_FIELDS = ("first_name", "last_name", "id_number", "received_date", "sender")
-LIST_FIELDS = ("central_numbers", "commitment_numbers")
+__all__ = ["NotFound", "DuplicateCommitmentError", "InvalidValue", "save_record", "get_record", "list_records",
+           "patch_record", "approve_record", "approve_clean"]
+
 MANUAL = "תוקן ידנית"
+_WITH_CHILDREN = (selectinload(Record.commitment_numbers), selectinload(Record.central_numbers),
+                  selectinload(Record.corrections))
 
 
 class NotFound(Exception):
@@ -30,20 +35,19 @@ class DuplicateCommitmentError(Exception):
         super().__init__("מספר התחייבות כבר קיים ברשומה מאושרת: " + ", ".join(numbers))
 
 
-class InvalidValue(ValueError):
-    pass
-
+# ---- row <-> record -----------------------------------------------------------------------------
 
 def _values(fields: list[Field]) -> list[str]:
     return [f.value for f in fields if f.value]
 
 
 def _sync_columns(row: Record, rec: CommitmentRecord) -> None:
+    """Copy the record into the row: the JSON document plus the columns used for search and filtering."""
     row.data = rec.model_dump(mode="json", exclude={"corrections", "duplicate_warnings", "id", "status"})
     row.id_number = rec.id_number.value
     row.sender = rec.sender.value
     row.received_date = date.fromisoformat(rec.received_date.value) if rec.received_date.value else None
-    row.needs_review = any(f.confidence != "high" for f in all_fields(rec))
+    row.needs_review = rec.needs_review()
     row.central_numbers = [RecordCentralNumber(value=v) for v in dict.fromkeys(_values(rec.central_numbers))]
     row.commitment_numbers = [RecordCommitmentNumber(value=v, status=row.status)
                               for v in dict.fromkeys(_values(rec.commitment_numbers))]
@@ -58,11 +62,43 @@ def _to_record(row: Record) -> CommitmentRecord:
 
 
 def _row(s: Session, record_id: uuid.UUID) -> Record:
-    row = s.get(Record, record_id)
+    row = s.scalars(sa.select(Record).where(Record.id == record_id).options(*_WITH_CHILDREN)).first()
     if row is None:
         raise NotFound(str(record_id))
     return row
 
+
+def _present(s: Session, rows: list[Record]) -> list[CommitmentRecord]:
+    warnings = _duplicate_warnings(s, rows)
+    out = []
+    for row in rows:
+        rec = _to_record(row)
+        rec.duplicate_warnings = warnings[row.id]
+        out.append(rec)
+    return out
+
+
+# ---- duplicates ---------------------------------------------------------------------------------
+
+def _duplicate_warnings(s: Session, rows: list[Record]) -> dict[uuid.UUID, list[str]]:
+    """Warnings only (ADR-010): another record shares a central or commitment number. Two queries in total."""
+    warnings: dict[uuid.UUID, list[str]] = {r.id: [] for r in rows}
+    for model, attr, label in ((RecordCentralNumber, "central_numbers", "מספר מרכזי"),
+                               (RecordCommitmentNumber, "commitment_numbers", "מספר התחייבות")):
+        mine = {r.id: {n.value for n in getattr(r, attr)} for r in rows}
+        wanted = set().union(*mine.values())
+        if not wanted:
+            continue
+        owners: dict[str, set[uuid.UUID]] = defaultdict(set)
+        for record_id, value in s.execute(sa.select(model.record_id, model.value).where(model.value.in_(wanted))):
+            owners[value].add(record_id)
+        for record_id, values in mine.items():
+            warnings[record_id] += [f"{label} {v} כבר קיים ברשומה אחרת"
+                                    for v in sorted(values) if owners[v] - {record_id}]
+    return warnings
+
+
+# ---- create / read ------------------------------------------------------------------------------
 
 def save_record(s: Session, rec: CommitmentRecord) -> CommitmentRecord:
     row = Record(id=rec.id, document_id=rec.document_id, status=rec.status)
@@ -73,43 +109,26 @@ def save_record(s: Session, rec: CommitmentRecord) -> CommitmentRecord:
 
 
 def get_record(s: Session, record_id: uuid.UUID) -> CommitmentRecord:
-    row = _row(s, record_id)
-    rec = _to_record(row)
-    rec.duplicate_warnings = find_duplicates(s, row)
-    return rec
-
-
-def find_duplicates(s: Session, row: Record) -> list[str]:
-    """Warnings only (ADR-010): another record shares a central or commitment number."""
-    out: list[str] = []
-    for model, label, mine in (
-        (RecordCentralNumber, "מספר מרכזי", [n.value for n in row.central_numbers]),
-        (RecordCommitmentNumber, "מספר התחייבות", [n.value for n in row.commitment_numbers]),
-    ):
-        if not mine:
-            continue
-        others = s.execute(sa.select(model.value).where(model.value.in_(mine), model.record_id != row.id)).scalars()
-        out += [f"{label} {v} כבר קיים ברשומה אחרת" for v in sorted(set(others))]
-    return out
+    return _present(s, [_row(s, record_id)])[0]
 
 
 def list_records(s: Session, *, status: str | None = None, sender: str | None = None,
                  date_from: date | None = None, date_to: date | None = None, q: str | None = None,
                  needs_review: bool | None = None, document_ids: list[uuid.UUID] | None = None,
                  limit: int = 200, offset: int = 0) -> list[CommitmentRecord]:
-    stmt = sa.select(Record).order_by(Record.created_at.desc(), Record.id)
-    if status:
-        stmt = stmt.where(Record.status == status)
-    if sender:
-        stmt = stmt.where(Record.sender == sender)
-    if date_from:
-        stmt = stmt.where(Record.received_date >= date_from)
-    if date_to:
-        stmt = stmt.where(Record.received_date <= date_to)
-    if needs_review is not None:
-        stmt = stmt.where(Record.needs_review == needs_review)
-    if document_ids:
-        stmt = stmt.where(Record.document_id.in_(document_ids))
+    stmt = sa.select(Record).options(*_WITH_CHILDREN).order_by(Record.created_at.desc(), Record.id)
+    # each condition is built only when its filter is given (comparing a column with None would raise)
+    filters = [
+        (status, lambda: Record.status == status),
+        (sender, lambda: Record.sender == sender),
+        (date_from, lambda: Record.received_date >= date_from),
+        (date_to, lambda: Record.received_date <= date_to),
+        (needs_review is not None, lambda: Record.needs_review == needs_review),
+        (document_ids, lambda: Record.document_id.in_(document_ids)),
+    ]
+    for active, condition in filters:
+        if active:
+            stmt = stmt.where(condition())
     if q and q.strip():
         like = f"%{q.strip()}%"
         stmt = stmt.where(sa.or_(
@@ -117,12 +136,7 @@ def list_records(s: Session, *, status: str | None = None, sender: str | None = 
             Record.id.in_(sa.select(RecordCentralNumber.record_id).where(RecordCentralNumber.value.like(like))),
             Record.id.in_(sa.select(RecordCommitmentNumber.record_id).where(RecordCommitmentNumber.value.like(like))),
         ))
-    out = []
-    for r in s.execute(stmt.limit(limit).offset(offset)).scalars().all():
-        rec = _to_record(r)
-        rec.duplicate_warnings = find_duplicates(s, r)
-        out.append(rec)
-    return out
+    return _present(s, list(s.scalars(stmt.limit(limit).offset(offset))))
 
 
 # ---- corrections --------------------------------------------------------------------------------
@@ -133,102 +147,59 @@ def _manual(value: str | None, raw: str | None = None) -> Field:
     return Field(value=value, raw_text=raw, confidence="high", source="manual", reasons=[MANUAL])
 
 
-def _clean_scalar(name: str, new: str | None) -> str | None:
-    new = (new or "").strip()
-    if not new:
-        return None
-    if name == "id_number":
-        v = normalize_id(new)
-        if v is None:
-            raise InvalidValue('ת"ז חייבת להכיל בין 5 ל-9 ספרות')
-        return v
-    if name == "received_date":
-        d = date.fromisoformat(new) if re.fullmatch(r"\d{4}-\d{2}-\d{2}", new) else normalize_date(new)
-        if d is None:
-            raise InvalidValue("תאריך לא תקין")
-        if d > date.today():
-            raise InvalidValue("תאריך בעתיד")
-        return d.isoformat()
-    if name == "sender":
-        m = match_sender(new)
-        if m is None:
-            raise InvalidValue("הגורם השולח אינו ברשימה")
-        return m.name
-    return new
-
-
-def _clean_list(name: str, new: list[str | None]) -> list[str]:
-    out: list[str] = []
-    for v in new:
-        v = (v or "").strip()
-        if not v:
-            continue
-        if name == "central_numbers":
-            v = re.sub(r"\D", "", v)
-            if len(v) != 6:
-                raise InvalidValue("מספר מרכזי חייב להכיל 6 ספרות")
-        else:
-            v = re.sub(r"\s+", "", v)
-            if not 4 <= len(v) <= 12 or not re.fullmatch(r"[A-Za-z]?\d+", v):
-                raise InvalidValue("מספר התחייבות: 4 עד 12 תווים, אות אופציונלית ואז ספרות")
-        if v not in out:
-            out.append(v)
-    return out
-
-
-def patch_record(s: Session, record_id: uuid.UUID, changes: dict[str, str | list[str | None] | None]) -> CommitmentRecord:
-    """Apply human corrections. Each changed field is logged (old -> new) and becomes high-confidence/manual."""
-    row = _row(s, record_id)
-    rec = _to_record(row)
-    unknown = set(changes) - set(SCALAR_FIELDS) - set(LIST_FIELDS)
+def _apply_changes(rec: CommitmentRecord, changes: dict) -> list[tuple[str, str | None, str | None]]:
+    """Validate and apply typed changes to rec in place. Returns (field, old, new) for what really changed."""
+    unknown = set(changes) - set(SCALAR_FIELDS) - set(LIST_RULES)
     if unknown:
         raise InvalidValue("שדה לא מוכר: " + ", ".join(sorted(unknown)))
     log: list[tuple[str, str | None, str | None]] = []
     for name, new in changes.items():
         if name in SCALAR_FIELDS:
-            old_field: Field = getattr(rec, name)
-            value = _clean_scalar(name, new if isinstance(new, str) else None)
-            if value == old_field.value:
-                continue
-            setattr(rec, name, _manual(value, raw=old_field.raw_text))
-            log.append((name, old_field.value, value))
+            old: Field = getattr(rec, name)
+            value = clean_scalar(name, new if isinstance(new, str) else None)
+            if value != old.value:
+                setattr(rec, name, _manual(value, raw=old.raw_text))
+                log.append((name, old.value, value))
         else:
-            old_vals = _values(getattr(rec, name))
-            vals = _clean_list(name, list(new or []))
-            if vals == old_vals:
-                continue
-            setattr(rec, name, [_manual(v) for v in vals] or [_manual(None)])
-            log.append((name, ", ".join(old_vals) or None, ", ".join(vals) or None))
+            old_values = _values(getattr(rec, name))
+            values = clean_list(name, list(new or []))
+            if values != old_values:
+                setattr(rec, name, [_manual(v) for v in values] or [_manual(None)])
+                log.append((name, ", ".join(old_values) or None, ", ".join(values) or None))
+    return log
+
+
+def patch_record(s: Session, record_id: uuid.UUID, changes: dict) -> CommitmentRecord:
+    """Apply human corrections. Each changed field is logged (old -> new) and becomes high-confidence/manual.
+    Nothing is logged when a typed value equals the stored one."""
+    row = _row(s, record_id)
+    rec = _to_record(row)
+    log = _apply_changes(rec, changes)
     if not log:
         return get_record(s, record_id)
-    if row.status == "approved":   # editing an approved record sends it back for approval
-        row.status = "pending"
-        row.approved_at = None
-    for name, old, new in log:
-        row.corrections.append(CorrectionRow(field=name, old_value=old, new_value=new, at=datetime.now(timezone.utc)))
-    row.commitment_numbers.clear()
-    row.central_numbers.clear()
-    s.flush()
+    if row.status == "approved":   # an edited record must be approved again
+        row.status, row.approved_at = "pending", None
+    now = datetime.now(UTC)
+    row.corrections.extend(CorrectionRow(field=f, old_value=o, new_value=n, at=now) for f, o, n in log)
     _sync_columns(row, rec)
     s.commit()
     return get_record(s, record_id)
 
 
+# ---- approval -----------------------------------------------------------------------------------
+
 def approve_record(s: Session, record_id: uuid.UUID) -> CommitmentRecord:
     row = _row(s, record_id)
-    row.status = "approved"
-    row.approved_at = datetime.now(timezone.utc)
+    row.status, row.approved_at = "approved", datetime.now(UTC)
     for n in row.commitment_numbers:
         n.status = "approved"
     try:
         s.commit()
-    except IntegrityError:
+    except IntegrityError:   # the partial unique index (ADR-016) rejected a number that is already approved
         s.rollback()
         mine = [n.value for n in _row(s, record_id).commitment_numbers]
-        taken = s.execute(
-            sa.select(RecordCommitmentNumber.value)
-            .where(RecordCommitmentNumber.value.in_(mine), RecordCommitmentNumber.status == "approved")
-        ).scalars().all()
+        taken = s.scalars(sa.select(RecordCommitmentNumber.value).where(
+            RecordCommitmentNumber.value.in_(mine), RecordCommitmentNumber.status == "approved")).all()
         raise DuplicateCommitmentError(sorted(set(taken))) from None
     return get_record(s, record_id)
 

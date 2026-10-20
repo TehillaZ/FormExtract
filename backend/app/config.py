@@ -24,5 +24,8 @@ class Settings(BaseSettings):
     database_url: str = ""
     storage_dir: str = "./data/storage"
 
+    def has_api_key(self, provider: str) -> bool:
+        return bool(getattr(self, f"{provider}_api_key"))
+
 
 settings = Settings()

@@ -1,163 +1,163 @@
-# PLAN — מנוע חילוץ טפסי התחייבות (המעבדה המרכזית לנגיפים)
+# PLAN — Commitment-Form Extraction Engine (Central Virology Laboratory)
 
-> מסמך תכנון חי. סעיפים שמסומנים **[פתוח]** ממתינים להחלטה. החלטות שהתקבלו נרשמות בסעיף "החלטות ארכיטקטורה".
-
----
-
-## 1. מטרה
-
-המעבדה המרכזית לנגיפים מקבלת טפסי התחייבות בפורמטים שונים: מודפסים, סרוקים, מצולמים וכתובים ביד. כיום מקלידים אותם ידנית. המערכת מקבלת טופס אחד או ערימה, מחלצת את השדות הנדרשים, מסמנת איפה היא לא בטוחה, ומאפשרת ללבורנטית לתקן ולאשר. הרשומות נשמרות במסד נתונים.
-
-**עיקרון מנחה:** שדה ריק ומסומן עדיף תמיד על ערך מנוחש. המערכת נמדדת לא רק לפי כמה היא צודקת, אלא גם לפי כמה טוב היא יודעת מתי היא טועה.
-
-**תסריט ההצלחה מהדרישות:** מעלים 30 טפסים, מקבלים טבלה מלאה, 3 שדות מסומנים בכתום, מתקנים ומאשרים. הכול לוקח 4 דקות במקום שעה.
+> Living design document. Items marked **[OPEN]** are waiting for a decision. Decisions that were made are recorded in the "Architecture decisions" section (ADRs). The UI is Hebrew and right-to-left; this document is in English. Hebrew terms that appear on the forms themselves (field labels, sender names, UI messages) are kept as written.
 
 ---
 
-## 2. השדות לחילוץ
+## 1. Goal
 
-| שדה | הערות מהדוגמאות |
+The central virology laboratory receives commitment forms in many formats: printed, scanned, photographed and handwritten. Today they are typed in by hand. The system accepts one form or a stack, extracts the required fields, marks where it is not sure, and lets the lab technician correct and approve. Records are stored in a database.
+
+**Guiding principle:** an empty, flagged field is always better than a guessed value. The system is measured not only by how often it is right, but by how well it knows when it is wrong.
+
+**Success scenario from the requirements:** upload 30 forms, get a full table with 3 fields marked orange, fix them and approve. The whole thing takes 4 minutes instead of an hour.
+
+---
+
+## 2. Fields to extract
+
+| Field | Notes from the samples |
 |---|---|
-| שם פרטי | לרוב בכתב יד. סדר שם פרטי ושם משפחה משתנה בין טפסים |
-| שם משפחה | כנ"ל |
-| מספר ת"ז | מנורמל ל-9 ספרות. ספרת ביקורת נבדקת, אבל בדוגמאות מספרי הזהות שונו ועשויים להיכשל בה (ראו ADR-014) |
-| מספר מרכזי (רשימה) | לפי ה-PDF: מדבקה שרשום בצידה "מרכזי", לפעמים בכתב יד. ייתכנו כמה, שומרים את כולם. **הנחה מהדוגמאות:** ברקוד ו-6 ספרות. יש מסיחים: מספרים בני 6 ספרות שאינם מרכזיים |
-| תאריך קבלה | חותמת "התקבל" או כתב יד מתחת למספר המרכזי. יש מסיחים: תאריך לידה, הפקה, תוקף |
-| גורם שולח | רשימה סגורה (מקור בסעיף 5.4). כשמופיעים גם קופה וגם בית חולים, בדוגמאות הודגש בית החולים |
-| מספר התחייבות (רשימה) | לפי ה-PDF: מופיע גם כ"דרישה", ובלאומית כ"דגימה". **מהדוגמאות:** גם "אסמכתא", אורך 4 עד 12 תווים, לפעמים עם אות. ייתכנו כמה, שומרים את כולם |
+| First name | Mostly handwritten. The order of first and last name varies between forms |
+| Last name | Same |
+| ID number (ת"ז) | Normalized to 9 digits. The check digit is validated, but the sample IDs were altered and may fail it (see ADR-014) |
+| Central number (list) | Per the PDF: a sticker marked "מרכזי", sometimes handwritten. There may be several; all are kept. **Assumption from the samples:** barcode and 6 digits. There are distractors: 6-digit numbers that are not central numbers |
+| Received date | A "התקבל" stamp, or handwriting below the central number. Distractors: birth date, print date, expiry date |
+| Sending party | A closed list (source in section 5.4). When both an HMO and a hospital appear, the samples highlight the hospital |
+| Commitment number (list) | Per the PDF: also appears as "דרישה", and at Leumit as "דגימה". **From the samples:** also "אסמכתא". 4 to 12 characters, sometimes with a letter. There may be several; all are kept |
 
-**שדה שלא נמצא:** הערך ריק, והשדה תמיד מסומן לבדיקה עם הסיבה "לא נמצא". אף פעם לא ממלאים ערך ברירת מחדל.
-
----
-
-### 2.1 ממצאים מהדוגמאות (יום 1)
-טבלת אמת לכל 48 העמודים נמצאת ב-`data/ground_truth_draft.jsonl`, לפי ההדגשות, ואומתה ידנית.
-
-- **כיוון:** 11 עמודים מסובבים ב-90 מעלות. 23 עמודים עקומים בזווית קטנה (עד 5 מעלות), ותיקון היישור מטפל בהם.
-- **מספר מרכזי:** 53 מספרים, כולם 6 ספרות. 41 מתפענחים מהברקוד. השאר בכתב יד (צילומי מסך של בית חולים) או ברקוד שלא נקרא. ב-4 עמודים יש 2 או 3 מספרים מרכזיים.
-- **6 ספרות לא מספיק כדי לזהות מספר מרכזי:** בבני ציון מספר ההתחייבות הוא 6 ספרות עם ברקוד. הזיהוי חייב לסמוך על המילה "מרכזי" ליד המדבקה.
-- **מספר התחייבות:** בין 4 ל-12 תווים. יש עם קידומת אות (X132767) ועם אפס מוביל (03240), ולכן נשמר כמחרוזת. ב-2 עמודים יש כמה מספרים, וב-7 עמודים אין בכלל (רוזנבלט, איכילוב, רפואה משפטית, צפון). לפעמים הוא בכתב יד בשדה אחר, ולפעמים נקרא "מספר מבחנה", "מס' דגימה", "אסמכתא" או "דרישה".
-- **תאריך קבלה:** חותמת "התקבל", או כתב יד מתחת למספר המרכזי או בתוך חותמת ריקה. מסיח חוזר: "ת.קבלה" על מדבקת בית החולים, שהוא תאריך הקבלה לאשפוז ולא למעבדה.
-- **גורם שולח:** מעבר לקופות ובתי חולים יש גם מעבדה פרטית (רוזנבלט), צה"ל, משרד הביטחון, מד"א, הרשות הפלסטינית והמרכז הלאומי לרפואה משפטית. כשמופיעים גם לוגו קופה וגם בית חולים, בדרך כלל מודגש בית החולים. מסיח: "גורם שולח: בית ג'אן" בטופס לאומית, שאינו הגורם השולח.
-- **ת"ז:** מופיעה לרוב פעמיים או שלוש בעמוד (מדבקה וכתב יד), כך שאפשר להשוות בין הקריאות. בשני עמודים השם והת"ז המקוריים מחוקים ונכתבו מחדש.
-
-## 3. מה יש במערכת (MVP)
-
-1. העלאת קובץ אחד או כמה (PDF, JPG, PNG, HEIC מאייפון). גם טופס בודד וגם ערימה.
-2. פיצול לטפסים (ADR-015): ברירת מחדל עמוד = טופס, והמודל מסמן עמוד שהוא המשך של הקודם. כפתור ידני "צרפי לטופס הקודם" / "פצלי".
-3. שיפור תמונה: תיקון פרספקטיבה לצילומי טלפון, יישור סריקה עקומה, שיפור ניגודיות לסריקה חשוכה.
-4. זיהוי כיוון העמוד וסיבוב אוטומטי.
-5. זיהוי תבנית הטופס (שולח וסוג טופס: כללית, לאומית, בית חולים וכו').
-6. פענוח ברקודים.
-7. חילוץ שדות במודל ראייה, עם פלט מובנה.
-8. נרמול, ולידציה וציון ביטחון לכל שדה.
-9. מסך בדיקה: תמונת הטופס לצד השדות, הדגשה כתומה של מה שלא בטוח עם הסבר, תיקון במקום ואישור.
-10. מסך רשומות: חיפוש, סינון לפי סטטוס, תאריך ושולח.
-11. זיהוי כפילויות (אותו קובץ או אותו מספר מרכזי) והצגת אזהרה.
-12. תיעוד תיקונים: מה שונה, מאיזה ערך ולאיזה, ומתי. בלי זהות משתמשת, כי אין login ב-MVP (ADR-011).
-13. REST API מתועד (OpenAPI) לחיבור עתידי למערכת המעבדה.
-14. סקריפט הערכה מול טבלת אמת, שמחשב דיוק לכל שדה.
+**A field that is not found:** the value is empty, and the field is always flagged for review with the reason "לא נמצא" (not found). A default value is never filled in.
 
 ---
 
-## 4. ממשק המשתמש
+### 2.1 Findings from the samples (day 1)
+A ground-truth table for all 48 pages is in `data/ground_truth_draft.jsonl`, built from the highlights and verified by hand.
 
-כל הממשק בעברית ומימין לשמאל.
+- **Orientation:** 11 pages are rotated by 90 degrees. 23 pages are skewed by a small angle (up to 5 degrees), which deskewing handles.
+- **Central number:** 53 numbers, all 6 digits. 41 can be decoded from the barcode. The rest are handwritten (hospital screenshots) or have a barcode that did not decode. 4 pages have 2 or 3 central numbers.
+- **6 digits is not enough to identify a central number:** at Bnei Zion the commitment number is 6 digits with a barcode. Identification must rely on the word "מרכזי" next to the sticker.
+- **Commitment number:** 4 to 12 characters. Some have a letter prefix (X132767) and some a leading zero (03240), so it is stored as a string. 2 pages have several numbers, and 7 pages have none (Rosenblatt, Ichilov, Forensic Medicine, Tzafon). Sometimes it is handwritten in another field, and sometimes it is called "מספר מבחנה", "מס' דגימה", "אסמכתא" or "דרישה".
+- **Received date:** a "התקבל" stamp, or handwriting below the central number or inside an empty stamp. A recurring distractor: "ת.קבלה" on the hospital sticker, which is the hospital admission date and not the lab receipt date.
+- **Sending party:** besides HMOs and hospitals there is also a private lab (Rosenblatt), the IDF, the Ministry of Defense, MDA, the Palestinian Authority and the National Center for Forensic Medicine. When both an HMO logo and a hospital appear, the hospital is usually the highlighted one. Distractor: "גורם שולח: בית ג'אן" on a Leumit form, which is not the sending party.
+- **ID:** usually appears two or three times on a page (sticker and handwriting), so the readings can be compared. On two pages the original name and ID are erased and rewritten.
 
-### 4.1 מסך העלאה
-- אזור גרירה גדול עם כפתור "בחרי קבצים".
-- אחרי ההעלאה מופיעה רשימת קבצים עם סטטוס לכל עמוד: ממתין, בעיבוד, מוכן או שגיאה.
-- מעבר אוטומטי לטבלת הבדיקה כשהעיבוד מסתיים, או כפתור "לבדיקה".
+## 3. What the system includes (MVP)
 
-### 4.2 טבלת בדיקה (המסך המרכזי בהדגמה)
-- שורה לכל טופס ועמודה לכל שדה.
-- תא לא בטוח מסומן ברקע כתום. ריחוף מעליו מציג את הסיבה, למשל "ספרת ביקורת לא תקינה" או "כתב יד".
-- תא ריק (לא נמצא) מסומן כך שיהיה ברור שהוא ריק בכוונה.
-- מונה בראש המסך: "30 טפסים · 3 שדות דורשים בדיקה".
-- סינון מהיר: "הצג רק שורות עם שדות לבדיקה".
-- כפתור "אשרי את כל השורות התקינות".
-
-### 4.3 מסך טופס בודד
-- מימין תמונת הטופס, עם זום וסיבוב ידני.
-- משמאל השדות, עם ערך, תג ביטחון וסיבה.
-- עריכה במקום, ושדות הרשימה (מרכזי, התחייבות) ניתנים להוספה ולהסרה.
-- ניווט בין טפסים: הקודם, הבא, והבא שדורש בדיקה.
-- כפתור "אשרי ושמרי".
-
-### 4.4 מסך רשומות
-- כל הרשומות במערכת, מכל ההעלאות.
-- חיפוש לפי ת"ז, מספר מרכזי או מספר התחייבות.
-- סינון לפי סטטוס (ממתין או מאושר), תאריך קבלה ושולח.
-- ייצוא של התוצאה המסוננת (תוספת, ראו סעיף 9).
+1. Upload of one or several files (PDF, JPG, PNG, iPhone HEIC). Both a single form and a stack.
+2. Splitting into forms (ADR-015): by default page = form, and the model flags a page that continues the previous one. Manual buttons "attach to previous form" / "split".
+3. Image enhancement: perspective correction for phone photos, deskewing for skewed scans, contrast enhancement for dark scans.
+4. Page orientation detection and automatic rotation.
+5. Form template recognition (sender and form type: Clalit, Leumit, hospital, etc.).
+6. Barcode decoding.
+7. Field extraction with a vision model and structured output.
+8. Normalization, validation and a confidence score per field.
+9. Review screen: the form image next to the fields, orange highlighting of whatever is uncertain with an explanation, in-place correction and approval.
+10. Records screen: search, and filtering by status, date and sender.
+11. Duplicate detection (same file or same central number) with a warning.
+12. Correction log: what changed, from which value to which, and when. No user identity, since there is no login in the MVP (ADR-011).
+13. Documented REST API (OpenAPI) for future integration with the lab system.
+14. Evaluation script against the ground truth, computing accuracy per field.
 
 ---
 
-## 5. איך זה עובד — צינור העיבוד
+## 4. User interface
+
+The whole UI is in Hebrew and right-to-left.
+
+### 4.1 Upload screen
+- A large drag-and-drop area with a "בחרי קבצים" (choose files) button.
+- After upload, a file list appears with a status for each page: waiting, processing, ready or error.
+- Automatic move to the review table when processing finishes, or a "לבדיקה" (to review) button.
+
+### 4.2 Review table (the main screen in the demo)
+- A row per form and a column per field.
+- An uncertain cell has an orange background. Hovering shows the reason, for example "ספרת ביקורת לא תקינה" (invalid check digit) or "כתב יד" (handwriting).
+- An empty cell (not found) is marked so that it is clear it is empty on purpose.
+- A counter at the top: "30 טפסים · 3 שדות דורשים בדיקה" (30 forms, 3 fields need review).
+- Quick filter: "show only rows with fields to review".
+- A button "אשרי את כל השורות התקינות" (approve all clean rows).
+
+### 4.3 Single-form screen
+- On the right, the form image, with zoom and manual rotation.
+- On the left, the fields, each with its value, a confidence badge and the reason.
+- In-place editing. The list fields (central, commitment) can be added to and removed from.
+- Navigation between forms: previous, next, and next one that needs review.
+- A button "אשרי ושמרי" (approve and save).
+
+### 4.4 Records screen
+- All records in the system, from all uploads.
+- Search by ID, central number or commitment number.
+- Filter by status (pending or approved), received date and sender.
+- Export of the filtered result (an extra, see section 9).
+
+---
+
+## 5. How it works — the processing pipeline
 
 ```
-קובץ
- → המרה לתמונות (PDF דרך PyMuPDF, HEIC דרך pillow-heif)
- → שיפור תמונה מקומי (OpenCV): פרספקטיבה, יישור, ניגודיות
- → זיהוי כיוון מקומי (Tesseract OSD) + סיבוב
- → פענוח ברקודים מקומי
- → קריאה אחת למודל: תבנית + "המשך של העמוד הקודם?" + חילוץ שדות (פרומפט כללי + רמזי תבנית)
- → פיצול / צירוף עמודים לטפסים
- → נרמול
- → ולידציה + ציון ביטחון
- → [קריאה שנייה רק לשדות לא בטוחים: בדיקת עקביות]
- → שמירה ב-DB (סטטוס: ממתין)
+file
+ → convert to images (PDF via PyMuPDF, HEIC via pillow-heif)
+ → local image enhancement (OpenCV): perspective, deskew, contrast
+ → local orientation detection (Tesseract OSD) + rotation
+ → local barcode decoding
+ → one model call: template + "continuation of the previous page?" + field extraction (general prompt + template hints)
+ → split / merge pages into forms
+ → normalization
+ → validation + confidence score
+ → [second call only for uncertain fields: consistency check]
+ → save to DB (status: pending)
 ```
 
-**תקציב קריאות:** קריאה אחת לעמוד, ועוד קריאה רק לעמודים עם שדות לא בטוחים. ל-30 עמודים זה בערך 30 עד 45 קריאות במקום 90. כל מה שאפשר לעשות מקומית (כיוון, ברקוד, שיפור תמונה) לא עולה קריאה.
+**Call budget:** one call per page, plus another call only for pages with uncertain fields. For 30 pages that is about 30 to 45 calls instead of 90. Everything that can be done locally (orientation, barcode, image enhancement) costs no call.
 
-### 5.0 שיפור תמונה
-- **צילום טלפון:** זיהוי ארבע פינות הדף (contours) ותיקון פרספקטיבה. אם הפינות לא נמצאו, ממשיכים עם התמונה המקורית.
-- **סריקה עקומה:** יישור לפי זווית השורות (deskew), עד כ-15 מעלות.
-- **סריקה חשוכה:** CLAHE לשיפור ניגודיות.
-- שומרים גם את התמונה המקורית, ומסך הבדיקה מציג אותה.
-- אם התמונה עדיין לא קריאה (למשל מטושטשת מאוד), כל השדות מסומנים עם הסיבה "איכות תמונה נמוכה".
+### 5.0 Image enhancement
+- **Phone photo:** detect the four corners of the sheet (contours) and correct perspective. If the corners are not found, continue with the original image.
+- **Skewed scan:** deskew by the angle of the text lines, up to about 15 degrees.
+- **Dark scan:** CLAHE for contrast enhancement.
+- The original image is also kept, and the review screen shows it.
+- If the image is still unreadable (for example very blurry), all fields are flagged with the reason "איכות תמונה נמוכה" (low image quality).
 
-### 5.1 רמזי תבנית
-קובץ הגדרות (YAML או JSON) לכל תבנית, עם תיאור איפה כל שדה נמצא ואיך הוא נקרא. לדוגמה:
-- רמב"ם: "מספר הדגימה הוא מספר ההתחייבות".
-- לאומית: "מספר ההתחייבות מופיע כ'דגימה'".
-- מכבי (טופס מעבדה): "מספר ההתחייבות מופיע כ'דרישה'".
+### 5.1 Template hints
+A configuration file (YAML or JSON) per template, describing where each field is and how it is called. For example:
+- Rambam: "the sample number is the commitment number".
+- Leumit: "the commitment number appears as 'דגימה'".
+- Maccabi (lab form): "the commitment number appears as 'דרישה'".
 
-כך מוסיפים תבנית חדשה בלי לשנות קוד. אם התבנית לא זוהתה, משתמשים בפרומפט הכללי בלבד.
+This allows adding a new template without changing code. If the template is not recognized, only the general prompt is used.
 
-### 5.2 כללי ביטחון
+### 5.2 Confidence rules
 
-| רמה | מתי |
+| Level | When |
 |---|---|
-| גבוה | יש אימות חיצוני: ברקוד תואם, ת"ז שעוברת ספרת ביקורת (רק במצב `strict`, ראו ADR-014), או שולח בהתאמה מדויקת לרשימה |
-| בינוני | הקריאה עקבית אבל אין אימות |
-| נמוך | נכשלה בדיקה: קריאות לא עקביות, תאריך לא סביר, מספר מרכזי שאינו בן 6 ספרות (למשל מדבקה חתוכה), שולח שלא נמצא ברשימה, ערך בכתב יד שלא אומת, איכות תמונה נמוכה, או שדה שלא נמצא |
+| High | There is external verification: a matching barcode, an ID that passes the check digit (only in `strict` mode, see ADR-014), or an exact match of the sender to the list |
+| Medium | The reading is consistent but unverified |
+| Low | A check failed: inconsistent readings, an implausible date, a central number that is not 6 digits (for example a cropped sticker), a sender not in the list, an unverified handwritten value, low image quality, or a field that was not found |
 
-בינוני ונמוך מוצגים בכתום. ציון הביטחון שהמודל נותן לעצמו משמש לכל היותר כאות נוסף, לא כבסיס.
+Medium and low are shown in orange. The confidence score the model gives itself is used at most as an extra signal, never as the basis.
 
-### 5.3 ולידציות
-- ת"ז: השלמה ל-9 ספרות. ספרת ביקורת לפי מצב `ID_CHECKSUM_MODE` (ADR-014).
-- תאריך קבלה: לא בעתיד, ולא לפני תאריכים אחרים בטופס (בדיקה רכה).
-- מספר מרכזי: 6 ספרות (הנחה מהדוגמאות), והשוואה לברקוד אם נמצא.
-- גורם שולח: התאמה מקורבת לרשימה הסגורה. אם אין התאמה, הערך נשאר ריק, הטקסט שנקרא נשמר ב-`raw_text` ומוצג בהסבר, והשדה מסומן.
+### 5.3 Validations
+- ID: pad to 9 digits. The check digit depends on the `ID_CHECKSUM_MODE` mode (ADR-014).
+- Received date: not in the future, and not before other dates on the form (a soft check).
+- Central number: 6 digits (an assumption from the samples), compared with the barcode if one is found.
+- Sending party: fuzzy match against the closed list. If there is no match, the value stays empty, the text that was read is kept in `raw_text` and shown in the explanation, and the field is flagged.
 
-### 5.4 רשימת הגורמים השולחים
-- קופות החולים: כללית, מכבי, מאוחדת, לאומית.
-- בתי החולים: רשימה של 45 בתי חולים שהתקבלה מגורם בצוות, ותואמת לרשימת בתי החולים בישראל בוויקיפדיה (https://he.wikipedia.org/wiki/בתי_חולים_בישראל), לפי ההנחיה ב-PDF.
-- נוספו 6 גורמים שנמצאו בדוגמאות: רוזנבלט, צה"ל, משרד הביטחון, מד"א, הרשות הפלסטינית והמרכז הלאומי לרפואה משפטית.
-- הקובץ: `backend/app/data/senders.json` (55 גורמים), עם קטגוריה ושמות חלופיים לכל גורם (למשל "רמב"ם" / "רמבם" / "Rambam"). ההתאמה ב-`app/validation/senders.py`: קודם התאמה מדויקת לשם או לכינוי, ואחרת התאמה מקורבת. התאמה מקורבת מורידה את הביטחון לבינוני.
-- המקור ותאריך השליפה מתועדים ב-README. אפשר להרחיב בלי קוד.
+### 5.4 Sender list
+- HMOs: Clalit, Maccabi, Meuhedet, Leumit.
+- Hospitals: a list of 45 hospitals received from a team member, matching the list of hospitals in Israel on Wikipedia (https://he.wikipedia.org/wiki/בתי_חולים_בישראל), per the guidance in the PDF.
+- 6 parties found in the samples were added: Rosenblatt, the IDF, the Ministry of Defense, MDA, the Palestinian Authority and the National Center for Forensic Medicine.
+- The file: `backend/app/data/senders.json` (55 parties), with a category and alternative names for each (for example "רמב"ם" / "רמבם" / "Rambam"). Matching is in `app/validation/senders.py`: an exact match on the name or alias first, otherwise a fuzzy match. A fuzzy match lowers confidence to medium.
+- The source and the retrieval date are documented in the README. The list can be extended without code.
 
 ---
 
-## 6. מודל נתונים (טיוטה)
+## 6. Data model (draft)
 
 ```python
 class Field(BaseModel):
     value: str | None          # None = not found, never guessed
     raw_text: str | None       # what was read before normalization (e.g. sender not in list)
     confidence: Literal["high", "medium", "low"]   # value None -> always "low", reason "לא נמצא"
-    source: Literal["printed", "handwritten", "sticker", "stamp", "barcode"] | None
+    source: Literal["printed", "handwritten", "sticker", "stamp", "barcode", "manual"] | None
     reasons: list[str] = []
 
 class Correction(BaseModel):
@@ -182,237 +182,246 @@ class CommitmentRecord(BaseModel):
     corrections: list[Correction]
 ```
 
-טבלאות עיקריות: `documents` (הקובץ שהועלה), `pages`, `records`, `record_commitment_numbers` (ADR-016), `corrections`, `senders` (הרשימה הסגורה).
+Main tables: `documents` (the uploaded file), `pages`, `records`, `record_commitment_numbers` (ADR-016), `record_central_numbers`, `corrections`. The sender list is a JSON file.
 
 ---
 
-## 7. API (טיוטה)
+## 7. API (draft)
 
-| Method | Path | תיאור |
+| Method | Path | Description |
 |---|---|---|
-| POST | `/documents` | העלאת קובץ אחד או כמה |
-| GET | `/documents/{id}` | סטטוס עיבוד |
-| GET | `/records` | רשימת רשומות עם סינון (`status`, `sender`, `from`, `to`, `q`) |
-| GET | `/records/{id}` | רשומה בודדת |
-| PATCH | `/records/{id}` | תיקון שדות |
-| POST | `/records/{id}/merge-previous` | צירוף הטופס לטופס הקודם |
-| POST | `/records/{id}/split` | פיצול טופס לפי עמוד |
-| POST | `/records/{id}/approve` | אישור |
-| GET | `/pages/{id}/image` | תמונת העמוד |
-| GET | `/export` | ייצוא (תוספת) |
+| POST | `/documents` | Upload one or several files |
+| GET | `/documents/{id}` | Processing status |
+| GET | `/records` | List records with filtering (`status`, `sender`, `from`, `to`, `q`, `needs_review`, `document_id`) |
+| GET | `/records/{id}` | A single record |
+| PATCH | `/records/{id}` | Correct fields |
+| POST | `/records/{id}/merge-previous` | Attach the form to the previous form |
+| POST | `/records/{id}/split` | Split a form by page |
+| POST | `/records/{id}/approve` | Approve |
+| POST | `/records/approve-clean` | Approve all pending records with nothing flagged |
+| POST | `/pages/{id}/reprocess` | Retry a failed page |
+| GET | `/pages/{id}/image` | The page image |
+| GET | `/senders` | The closed sender list |
+| GET | `/export` | Export (extra) |
 
 ---
 
-## 8. טכנולוגיות
+## 8. Technology
 
-| שכבה | בחירה |
+| Layer | Choice |
 |---|---|
 | Backend | Python, FastAPI |
-| סכמות | Pydantic (גם לפלט המודל) |
-| PDF לתמונה | PyMuPDF, ו-pillow-heif לתמונות HEIC |
-| עיבוד תמונה | OpenCV (פרספקטיבה, deskew, CLAHE) |
-| ברקודים | zxing-cpp (לבדוק על הדוגמאות) |
-| מודל ראייה | ספק ראשי אחד בשכבה חינמית, וספק גיבוי מספק אחר, מאחורי ממשק ספק מתחלף (ADR-003) |
-| OCR משני | Tesseract עם עברית, גם לזיהוי כיוון (OSD) |
+| Schemas | Pydantic (also for the model output) |
+| PDF to image | PyMuPDF, and pillow-heif for HEIC images |
+| Image processing | OpenCV (perspective, deskew, CLAHE) |
+| Barcodes | zxing-cpp (to be tested on the samples) |
+| Vision model | One primary provider on a free tier and a fallback provider from another vendor, behind a swappable provider interface (ADR-003) |
+| Secondary OCR | Tesseract with Hebrew, also for orientation detection (OSD) |
 | DB | PostgreSQL (ADR-004) |
-| ORM | SQLModel או SQLAlchemy |
-| עיבוד ברקע | FastAPI BackgroundTasks, סטטוס ב-DB (ADR-005) |
-| אחסון תמונות | דיסק מקומי, נתיב ב-DB, מאחורי ממשק אחסון (ADR-006) |
+| ORM | SQLAlchemy |
+| Background processing | FastAPI BackgroundTasks, status in the DB (ADR-005) |
+| Image storage | Local disk, path in the DB, behind a storage interface (ADR-006) |
 | Frontend | React, TypeScript, Vite |
-| סגנון | Tailwind, עם `dir="rtl"` ומחלקות לוגיות (ADR-007) |
-| שליפת נתונים | React Query |
-| הרצה | Docker Compose מקומי. ענן בהמשך |
-| בדיקות | pytest, וסקריפט הערכה |
+| Styling | Tailwind, with `dir="rtl"` and logical classes (ADR-007) |
+| Data fetching | React Query |
+| Running | Local Docker Compose. Cloud later |
+| Tests | pytest, and the evaluation script |
 
 ---
 
-## 9. פיצ'רים נוספים (לפי סדר עדיפות)
+## 9. Extra features (in priority order)
 
-1. ייצוא CSV או אקסל של התוצאה המסוננת.
-2. מסך "דוח דיוק": תוצאות סקריפט ההערכה בממשק, דיוק לכל שדה.
-3. סימון מיקום השדה על התמונה. מתחילים מברקודים, שעבורם zxing-cpp מחזיר מיקום מדויק. קואורדינטות ממודל הראייה רק אם יישאר זמן ויתבררו כאמינות.
-4. מצב "ניקוי הדגשות": הורדת המרקר הצהוב מהתמונה, כדי למדוד דיוק בתנאים קרובים לשטח.
-5. אפשרות להריץ מודל מקומי במקום API חיצוני.
-6. קיצורי מקלדת במסך הבדיקה (Enter לאישור, Tab לשדה הבא שדורש בדיקה).
-7. סטטיסטיקה: כמה טפסים היום, כמה תיקונים לפי שדה ולפי שולח.
+1. Export the filtered result to CSV or Excel.
+2. An "accuracy report" screen: the evaluation script results in the UI, accuracy per field.
+3. Marking the field location on the image. Start with barcodes, for which zxing-cpp returns an exact position. Coordinates from the vision model only if time remains and they prove reliable.
+4. A "highlight removal" mode: remove the yellow marker from the image, to measure accuracy under conditions close to the field.
+5. Running a local model instead of an external API.
+6. Keyboard shortcuts in the review screen (Enter to approve, Tab to the next field that needs review).
+7. Statistics: how many forms today, how many corrections by field and by sender.
 
-(מיזוג ופיצול עמודים עבר ל-MVP, ראו ADR-015.)
-
----
-
-## 10. מדידה
-
-- טבלת אמת ב-JSON לכל העמודים, לפי ההדגשות בדוגמאות, מאומתת ידנית.
-- חלוקה: עמודי פיתוח, ו-12 עד 15 עמודי בדיקה שלא נוגעים בהם בזמן כתיבת הפרומפטים.
-- מדדים לכל שדה: דיוק, אחוז שסומנו, ואחוז השגיאות שלא סומנו. האחרון הוא המדד החשוב ביותר.
-- בדיווח הכן: הדוגמאות מסומנות במרקר, ולכן הדיוק עליהן כנראה גבוה מהמציאות.
+(Merging and splitting pages moved to the MVP, see ADR-015.)
 
 ---
 
-## 11. פרטיות
+## 10. Measurement
 
-- מקומי קודם: כיוון, ברקודים ושיפור תמונה רצים מקומית, בלי שליחה החוצה.
-- שולחים למודל החיצוני רק את מה שנדרש לחילוץ. ספק הגיבוי מקבל עמוד רק כשהראשי נכשל, כדי לא לפזר את המידע בין ספקים בלי צורך.
-- לא רושמים ערכי שדות בלוגים.
-- שומרים רק את השדות הנדרשים ואת תמונת העמוד.
-- תמונות נמחקות אוטומטית 30 יום אחרי אישור הרשומה. הערך ניתן להגדרה. הרשומה עצמה נשארת.
-- בשכבה החינמית של Gemini, הקלט עשוי לשמש לשיפור מוצרי Google. זה מקובל בפיתוח על דוגמאות שהפרטים בהן שונו, אבל לא בשטח. בסיכום יש לציין: בשטח רק שכבה בתשלום או מודל מקומי.
-- בסיכום: מה נדרש כדי להריץ את המערכת במעבדה בלי לשלוח מידע החוצה.
+- A ground-truth table in JSON for all pages, built from the highlights in the samples and verified by hand.
+- Split: development pages, and 12 to 15 test pages that are not touched while writing prompts (`data/split.json`).
+- Metrics per field: accuracy, percentage flagged, and percentage of errors that were not flagged. The last one is the most important metric.
+- In the honest report: the samples are marked with a highlighter, so accuracy on them is probably higher than in reality.
 
 ---
 
-## 12. החלטות ארכיטקטורה
+## 11. Privacy
 
-> כאן נרשמות ההחלטות שהתקבלו. תבנית לכל החלטה:
+- Local first: orientation, barcodes and image enhancement run locally, with nothing sent out.
+- Only what is needed for extraction is sent to the external model. The fallback provider receives a page only when the primary one fails, so as not to spread the information between providers unnecessarily.
+- Field values are not written to logs.
+- Only the required fields and the page image are stored.
+- Images are deleted automatically 30 days after the record is approved. The value is configurable. The record itself stays.
+- On the Gemini free tier, the input may be used to improve Google products. That is acceptable in development on samples whose details were altered, but not in the field. The summary should state: in the field, only a paid tier or a local model.
+- The summary should state what is needed to run the system in the lab without sending information out.
+
+---
+
+## 12. Architecture decisions
+
+> Decisions that were made are recorded here. Template for each decision:
 
 ```
-### ADR-NNN: כותרת
-- תאריך:
-- הקשר: מה הבעיה
-- אפשרויות שנשקלו:
-- החלטה:
-- נימוק:
-- השלכות:
+### ADR-NNN: Title
+- Date:
+- Context: what the problem is
+- Options considered:
+- Decision:
+- Rationale:
+- Consequences:
 ```
 
-### ADR-001: Python ו-FastAPI ל-backend
-- הקשר: עיבוד PDF ותמונות, והרחבת הסטאק מעבר ל-.NET.
-- החלטה: Python עם FastAPI.
-- נימוק: הספריות לעיבוד מסמכים כתובות קודם כול לפייתון. ניסיון קודם עם Pydantic.
+### ADR-001: Python and FastAPI for the backend
+- Context: PDF and image processing, and widening the stack beyond .NET.
+- Decision: Python with FastAPI.
+- Rationale: the document-processing libraries are written for Python first. Prior experience with Pydantic.
 
-### ADR-002: רשומות נשמרות ב-DB, ייצוא לקובץ לפי דרישה
-- הקשר: הבהרה מהמארגנים שאקסל אינו המטרה ושבסוף יהיה API.
-- החלטה: מקור אמת אחד ב-DB. ייצוא נוצר ממנו לפי דרישה.
+### ADR-002: Records are stored in the DB, export to a file on demand
+- Context: clarification from the organizers that Excel is not the goal and that there will eventually be an API.
+- Decision: one source of truth in the DB. Exports are generated from it on demand.
 
-### ADR-003: ספק מודל ראייה מתחלף, ובחירה לפי ניסוי
-- הקשר: מנוי Claude אינו כולל API, ותקציב הפיתוח הוא אפס.
-- החלטה: ממשק `VisionProvider` אחד, עם שני מימושים חינמיים: Gemini (Google AI Studio) ו-Groq (מודלים פתוחים עם תמיכה בתמונה). ביום 1 מריצים את שניהם על אותם 5 עד 10 עמודים מטבלת האמת. הטוב יותר הוא הספק הראשי, והשני הוא גיבוי. אפשר להחליף ספק דרך משתנה סביבה.
-- **שרשרת גיבוי:** מפתח אחד לכל ספק. כשהראשי מחזיר 429 גם אחרי backoff, העמוד עובר לספק הגיבוי, וזה נרשם ברשומה (`provider`) כדי שיהיה ברור באיזה מודל חולץ.
-- **לא עושים:** כמה מפתחות או חשבונות אצל אותו ספק כדי לעקוף את מגבלת הקצב. זה מנוגד לתנאי השימוש של רוב הספקים, ועלול לגרום לחסימה ביום ההדגמה.
-- **[פתוח]**: התוצאה של הניסוי, ומדידת זמן ערימה של 30 עמודים.
-- השלכות: מגבלות קצב נמוכות, כלומר עיבוד במקביל מוגבל וטיפול בשגיאות 429. הקלט בשכבה החינמית עשוי לשמש את הספק (ראו סעיף 11). שני ספקים עלולים לתת דיוק שונה, ולכן מדווחים בהערכה על כל ספק בנפרד.
-- **גיבוי להדגמה:** מעבדים מראש את ערימת ההדגמה ושומרים ב-DB. אם בזמן ההדגמה יש מגבלת קצב, מציגים את התוצאות השמורות.
+### ADR-003: A swappable vision-model provider, chosen by experiment
+- Context: a Claude subscription does not include an API, and the development budget is zero.
+- Decision: one `VisionProvider` interface with two free implementations: Gemini (Google AI Studio) and Groq (open models with image support). On day 1 both are run on the same 5 to 10 pages from the ground-truth table. The better one is the primary provider and the other is the fallback. The provider can be changed through an environment variable.
+- **Fallback chain:** one key per provider. When the primary returns 429 even after backoff, the page goes to the fallback provider, and this is recorded in the record (`provider`) so it is clear which model did the extraction.
+- **Not done:** several keys or accounts at the same provider to get around the rate limit. This goes against the terms of service of most providers and could cause a block on demo day.
+- **[OPEN]**: the result of the experiment, and timing a stack of 30 pages. Status: only Gemini has been measured. Groq is blocked by the current network filter (NetFree, HTTP 418), so the comparison has to be run from another network.
+- Consequences: low rate limits, which means limited parallel processing and handling of 429 errors. On the free tier the input may be used by the provider (see section 11). Two providers may give different accuracy, so evaluation reports each provider separately.
+- **Demo backup:** the demo stack is processed in advance and saved in the DB. If there is a rate limit during the demo, the saved results are shown.
 
 ### ADR-004: PostgreSQL
-- נימוק: מוכר, ומתאים לפריסה עתידית בענן עם PostgreSQL מנוהל.
+- Rationale: familiar, and suitable for a future cloud deployment with managed PostgreSQL.
 
-### ADR-005: עיבוד ברקע עם BackgroundTasks, ו-polling מהממשק
-- הקשר: עיבוד ערימה לוקח זמן, והממשק צריך להתעדכן.
-- החלטה: ההעלאה מחזירה מיד מזהה מסמך. העיבוד רץ ב-BackgroundTasks, והסטטוס של כל עמוד נשמר ב-DB. React Query שואל כל 2 עד 3 שניות עד שהעיבוד מסתיים.
-- נימוק: בלי Redis ובלי worker נפרד. מתאים להיקף של האקתון.
-- השלכות: עבודה שבאמצע עיבוד אובדת אם השרת נופל, ולכן צריך כפתור "עבדי מחדש" לעמוד שנכשל. בפריסה לענן נדרש שרת שרץ ברציפות ולא serverless.
+### ADR-005: Background processing with BackgroundTasks, and polling from the UI
+- Context: processing a stack takes time, and the UI needs to update.
+- Decision: the upload returns a document ID at once. Processing runs in BackgroundTasks, and the status of each page is stored in the DB. React Query polls every 2 to 3 seconds until processing finishes.
+- Rationale: no Redis and no separate worker. Fits the scale of a hackathon.
+- Consequences: work in the middle of processing is lost if the server crashes, so a "reprocess" button is needed for a failed page. A cloud deployment requires a continuously running server, not serverless.
 
-### ADR-006: תמונות בדיסק, נתיב ב-DB, מאחורי ממשק אחסון
-- נימוק: ה-DB נשאר קל. ממשק `Storage` מאפשר להחליף בהמשך לאחסון ענן בלי לשנות את שאר הקוד.
+### ADR-006: Images on disk, path in the DB, behind a storage interface
+- Rationale: the DB stays light. A `Storage` interface allows switching to cloud storage later without changing the rest of the code.
 
-### ADR-007: Tailwind עם RTL
-- החלטה: `dir="rtl"` ברמת הדף, ומחלקות לוגיות (`ms-`, `me-`, `ps-`, `pe-`, `start-`, `end-`) במקום left ו-right.
+### ADR-007: Tailwind with RTL
+- Decision: `dir="rtl"` at the page level, and logical classes (`ms-`, `me-`, `ps-`, `pe-`, `start-`, `end-`) instead of left and right.
 
-### ADR-008: עיבוד במקביל מוגבל
-- החלטה: `asyncio.Semaphore` עם ערך ברירת מחדל נמוך (2), הניתן להגדרה, ו-retry עם backoff על שגיאות 429.
+### ADR-008: Limited parallel processing
+- Decision: an `asyncio.Semaphore` with a low default (2), configurable, a minimum interval between calls to one provider, and retry with backoff on 429 errors.
 
-### ADR-009: זיהוי כיוון בשני שלבים
-- החלטה: Tesseract OSD, שהוא מקומי, חינמי ומהיר, מסובב לפני הקריאה למודל. הקריאה היחידה למודל מחזירה גם "האם הטקסט נראה הפוך". אם כן, מסובבים 180 מעלות ושולחים שוב. זה המקרה היחיד שבו עמוד עולה קריאה נוספת בגלל כיוון.
+### ADR-009: Orientation detection in two stages
+- Decision: Tesseract OSD, which is local, free and fast, rotates before the model call. The single model call also returns "does the text look upside down". If so, the page is rotated 180 degrees and sent again. This is the only case where a page costs an additional call because of orientation.
+- Status: Tesseract is not installed yet. Until then, only the model's upside-down flag is available.
 
-### ADR-010: כפילויות
-- החלטה: hash זהה של קובץ הוא כפילות ודאית, והעמוד לא מעובד שוב. מספר מרכזי שכבר קיים ב-DB מעלה אזהרה ברשומה, אבל לא חוסם.
+### ADR-010: Duplicates
+- Decision: an identical file hash is a certain duplicate, and the file is not processed again. A central number that already exists in the DB raises a warning on the record, but does not block.
 
-### ADR-011: משתמשת אחת, בלי login ב-MVP
+### ADR-011: One user, no login in the MVP
 
-### ADR-012: פיתוח והדגמה מקומיים ב-Docker, ענן בהמשך
-- השלכות: ההגדרות דרך משתני סביבה. Frontend יכול לעבור ל-Vercel. ה-backend צריך שירות שמריץ שרת ברציפות (ADR-005).
+### ADR-012: Development and demo run locally in Docker, cloud later
+- Consequences: configuration through environment variables. The frontend can move to Vercel. The backend needs a service that runs a server continuously (ADR-005).
 
-### ADR-013: הנחות עבודה מהדוגמאות (יופיעו ב-README תחת "הנחות")
-- **כמה מספרי התחייבות:** רשומה אחת לכל טופס, עם רשימת מספרים. פיצול לרשומות נפרדות הוא שינוי קטן ב-API, אם יידרש.
-- **גורם שולח:** אם מופיע מוסד שולח, הוא הגורם השולח. אחרת הקופה. בצילומי המסך ממערכת בית החולים זה השדה "גורם מפנה". מבוסס על ההדגשות בדוגמאות.
-- **רשימה סגורה:** קטגוריות קופה, בית חולים, מעבדה וגוף ממשלתי, שאפשר להרחיב בלי קוד (מקור בסעיף 5.4). לפי הדוגמאות הרשימה כוללת גם את רוזנבלט, צה"ל, משרד הביטחון, מד"א, הרשות הפלסטינית והמרכז הלאומי לרפואה משפטית. שולח שלא נמצא ברשימה נשאר ריק, הטקסט שנקרא מוצג בהסבר, והשדה מסומן.
-- **חותמת מול תאריך בכתב יד:** אם הם זהים, ביטחון גבוה. אם הם שונים, נבחרת החותמת, השדה מסומן, ובהסבר מופיעים שני הערכים.
-- **צילומי מסך ממערכת בית החולים:** נחשבים סוג טופס, כי הם בדוגמאות של המעבדה.
-- **מספר מרכזי בן 6 ספרות עם ברקוד:** נלמד מהדוגמאות, לא כתוב ב-PDF.
-- **"דרישה" / "דגימה" / "אסמכתא":** ה-PDF אומר "דרישה" באופן כללי ו"דגימה" בלאומית. השיוך לתבניות אחרות (למשל מכבי, רמב"ם) ו"אסמכתא" נלמדו מהדוגמאות.
+### ADR-013: Working assumptions from the samples (will appear in the README under "Assumptions")
+- **Several commitment numbers:** one record per form, with a list of numbers. Splitting into separate records is a small API change, if needed.
+- **Sending party:** if a sending institution appears, it is the sending party. Otherwise the HMO. In the hospital-system screenshots this is the field "גורם מפנה". Based on the highlights in the samples.
+- **Closed list:** the categories are HMO, hospital, lab and government body, and can be extended without code (source in section 5.4). According to the samples the list also includes Rosenblatt, the IDF, the Ministry of Defense, MDA, the Palestinian Authority and the National Center for Forensic Medicine. A sender that is not in the list stays empty, the text that was read is shown in the explanation, and the field is flagged.
+- **Stamp versus handwritten date:** if they are identical, high confidence. If they differ, the stamp is chosen, the field is flagged, and both values appear in the explanation.
+- **Hospital-system screenshots:** treated as a form type, since they are in the lab's samples.
+- **A 6-digit central number with a barcode:** learned from the samples, it is not written in the PDF.
+- **"דרישה" / "דגימה" / "אסמכתא":** the PDF says "דרישה" in general and "דגימה" for Leumit. The assignment to other templates (for example Maccabi, Rambam) and "אסמכתא" were learned from the samples.
+- **Highlighted values:** the model reports which values are covered by a yellow marker. When candidates compete, the highlighted one wins. This helps on the samples, and does nothing on unmarked forms.
+- **Barcode match:** a barcode match proves a number is on the page, not that it is the wanted one. With competing candidates, an unhighlighted barcode match is only medium.
 
-### ADR-014: ספרת ביקורת של ת"ז
-- הקשר: לפי ה-PDF, מספרי הזהות בדוגמאות שונו ואינם של אנשים אמיתיים. ייתכן שהם נכשלים בספרת הביקורת, ואז כלל הביטחון יסמן כמעט כל ת"ז.
-- החלטה: משתנה סביבה `ID_CHECKSUM_MODE`:
-  - `strict` (ברירת מחדל לשטח): עובר = ביטחון גבוה, נכשל = נמוך עם הסיבה "ספרת ביקורת לא תקינה".
-  - `lenient` (לדוגמאות): הבדיקה לא משנה את הביטחון. הביטחון נקבע לפי עקביות הקריאה וסוג הכתב, והתוצאה מוצגת רק כמידע בהסבר.
-- ביום 1 בודקים כמה ת"ז בטבלת האמת עוברות את הבדיקה. אם רובן נכשלות, ההדגמה וההערכה רצות ב-`lenient`.
-- **תוצאה (יום 1):** 35 מתוך 48 עוברות, כי הערך המדומה הנפוץ 11223344 תקין במקרה. ה-13 שנכשלות כתובות עם 8 או 10 ספרות (למשל 0011223344), ולכן סימון שלהן נכון. **ההדגמה וההערכה רצות ב-`strict`.**
-- בדיווח הכן: מציינים באיזה מצב רצה ההערכה, ושבשטח הבדיקה מופעלת ותשפר את זיהוי השגיאות בת"ז.
+### ADR-014: ID check digit
+- Context: according to the PDF, the ID numbers in the samples were altered and are not real people's. They may fail the check digit, in which case the confidence rule would flag almost every ID.
+- Decision: an environment variable `ID_CHECKSUM_MODE`:
+  - `strict` (default for the field): passes = high confidence, fails = low with the reason "ספרת ביקורת לא תקינה".
+  - `lenient` (for the samples): the check does not change confidence. Confidence is set by reading consistency and handwriting type, and the result is shown only as information in the explanation.
+- On day 1, check how many IDs in the ground-truth table pass the check. If most fail, the demo and evaluation run in `lenient`.
+- **Result (day 1):** 35 of 48 pass, because the common fake value 11223344 happens to be valid. The 13 that fail are written with 8 or 10 digits (for example 0011223344), so flagging them is correct. **The demo and evaluation run in `strict`.**
+- In the honest report: state which mode the evaluation ran in, and that in the field the check is enabled and will improve ID error detection.
 
-### ADR-015: פיצול לטפסים
-- הקשר: ה-PDF מגדיר "פצל טפסים" כצעד ראשון. קובץ PDF אחד מכיל טפסים רבים, וייתכן טופס שמשתרע על שני עמודים.
-- החלטה: ברירת מחדל עמוד = טופס. הקריאה למודל מחזירה גם "האם העמוד הוא המשך של הקודם" (למשל אין כותרת טופס ואין שדות זיהוי). אם כן, העמוד מצורף לרשומה הקודמת והשדות מתמזגים. בממשק יש כפתורים "צרפי לטופס הקודם" ו"פצלי".
-- ביום 1 עוברים על הדוגמאות ובודקים אם יש טפסים של כמה עמודים או שני טפסים בעמוד. שני טפסים בעמוד לא נתמכים ב-MVP ויופיעו במגבלות.
-- **תוצאה (יום 1):** אין בדוגמאות טופס של כמה עמודים ואין שני טפסים בעמוד. בשני עמודים כתוב "עמוד 1 מתוך 2", אבל העמוד הבא הוא טופס אחר. כלומר עמוד = טופס, וזיהוי ההמשך נשאר רק כרשת ביטחון. אסור לסמוך על "עמוד 1 מתוך 2" כסימן להמשך.
+### ADR-015: Splitting into forms
+- Context: the PDF defines "split forms" as the first step. One PDF file contains many forms, and a form may span two pages.
+- Decision: by default page = form. The model call also returns "is the page a continuation of the previous one" (for example no form title and no identification fields). If so, the page is attached to the previous record and the fields are merged. The UI has buttons "צרפי לטופס הקודם" (attach to previous form) and "פצלי" (split).
+- On day 1, go through the samples and check whether there are multi-page forms or two forms on one page. Two forms on one page are not supported in the MVP and will be listed under limitations.
+- **Result (day 1):** the samples contain no multi-page form and no two forms on one page. Two pages say "עמוד 1 מתוך 2", but the next page is a different form. So page = form, and continuation detection remains only as a safety net. "Page 1 of 2" must not be relied on as a sign of continuation.
 
-### ADR-016: מפתח ראשי ואחידות של מספר התחייבות
-- הקשר: מספר ההתחייבות אמור להיות ייחודי, אבל ב-7 מתוך 48 עמודים הוא חסר, ולפעמים לא קריא. בנוסף, המערכת המרכזית עשויה לקבל נתונים ממקורות נוספים. (משוב מהמארגנים.)
-- החלטה:
-  - מפתח ראשי: `id UUID` לכל רשומה, שאינו תלוי במספר ההתחייבות.
-  - מספרי ההתחייבות בטבלת בת `record_commitment_numbers(record_id, value, status)`, כי לרשומה יכולים להיות כמה (ADR-013).
-  - אינדקס ייחודי חלקי: `CREATE UNIQUE INDEX ... ON record_commitment_numbers (value) WHERE value IS NOT NULL AND status = 'approved'`. ריק לעולם לא נחשב כפילות.
-- הערה: האינדקס חל רק על רשומות **מאושרות**. רשומות ממתינות עם מספר שכבר קיים לא נחסמות אלא מקבלות אזהרת כפילות (ADR-010), כדי שהלבורנטית תוכל לראות ולהחליט. אישור רשומה עם מספר שכבר מאושר נדחה עם הודעה ברורה.
-- **[פתוח]**: האם אותו מספר התחייבות יכול להופיע בשתי רשומות תקינות (למשל שני טפסים לאותה דגימה)? לשאול את המארגנים.
-- השלכות: `status` מועתק לטבלת הבת וצריך להישאר מסונכרן עם הרשומה.
-
----
-
-## 13. שאלות פתוחות
-
-### טכניות
-1. **איזה מודל Gemini?** צריך להשוות בין שניים או שלושה מודלים על 5 עד 10 עמודים בכתב יד, בגבולות השכבה החינמית.
-2. **מגבלות הקצב בשכבה החינמית:** האם הן מספיקות להרצת ערימה של 30 עמודים בזמן סביר בהדגמה? צריך לבדוק ביום 1. עם קריאה אחת לעמוד וספק גיבוי (ADR-003) הסיכוי טוב, ויש גם תוצאות שמורות מראש.
-3. **ספרות ביקורת בדוגמאות:** האם ת"ז בדוגמאות עוברות? קובע את מצב `ID_CHECKSUM_MODE` (ADR-014).
-4. **טפסים של כמה עמודים:** האם יש כאלה בדוגמאות? (ADR-015)
-5. **פריסה לענן:** איזה שירות ל-backend ול-PostgreSQL. נחליט אחרי ההגשה.
-
-### למארגנים
-1. האם ההאקתון מספק קרדיטים ל-API של מודלים?
+### ADR-016: Primary key and uniqueness of the commitment number
+- Context: the commitment number is supposed to be unique, but 7 of 48 pages do not have it, and sometimes it is unreadable. In addition, the central system may receive data from more sources. (Feedback from the organizers.)
+- Decision:
+  - Primary key: an `id UUID` for every record, independent of the commitment number.
+  - The commitment numbers live in a child table `record_commitment_numbers(record_id, value, status)`, because a record may have several (ADR-013).
+  - A partial unique index: `CREATE UNIQUE INDEX ... ON record_commitment_numbers (value) WHERE status = 'approved'`. An empty number is never stored, so it is never counted as a duplicate.
+- Note: the index applies only to **approved** records. Pending records with a number that already exists are not blocked but get a duplicate warning (ADR-010), so the technician can see and decide. Approving a record with an already-approved number is rejected with a clear message (HTTP 409).
+- **[OPEN]**: can the same commitment number appear in two valid records (for example two forms for the same sample)? To ask the organizers.
+- Consequences: `status` is copied to the child table and must stay in sync with the record.
 
 ---
 
-## 14. לוח זמנים (יומיים)
+## 13. Open questions
 
-### יום 1
-- [x] הקמת הפרויקט: מבנה תיקיות (backend, venv, requirements, .gitignore, .env.example)
-- [~] Docker Compose ו-DB (קובץ compose וקוד DB קיימים ונבדקו על SQLite. עדיין לא הורץ מול PostgreSQL, Docker Desktop כבוי)
-- [ ] מפתח API אחד ל-Gemini ואחד ל-Groq (קובץ .env עדיין ריק)
-- [x] טבלת אמת: טיוטה לכל 48 העמודים
-- [x] טבלת אמת: אימות ידני
-- [x] בדיקות על הדוגמאות: ספרות ביקורת של ת"ז (ADR-014), טפסים של כמה עמודים (ADR-015), ברקודים (סעיף 2.1)
-- [x] seed של רשימת השולחים והתאמה אליה (סעיף 5.4)
-- [x] המרת PDF ו-HEIC לתמונות, פענוח ברקודים, שיפור תמונה (פרספקטיבה, יישור, ניגודיות)
-- [ ] זיהוי כיוון וסיבוב (צריך להתקין Tesseract עם עברית)
-- [~] חילוץ בסיסי בקריאה אחת עם פלט מובנה (Gemini נמדד על 21 עמודי פיתוח. Groq עדיין לא)
-- [x] נרמול וולידציות
-- [~] שמירה ב-DB (repo עם שמירה, חיפוש, תיקון, אישור וכפילויות). חסר: FastAPI
-- [ ] מדידת זמן ערימה של 30 עמודים
-- [x] הרצה ראשונה של סקריפט ההערכה (חלקית, מגבלת קצב של Gemini)
+### Technical
+1. **Which Gemini model?** Two or three models should be compared on 5 to 10 handwritten pages, within the free-tier limits. Status: `gemini-2.5-flash` measured. A second model (for example flash-lite) is untested, and its quota may be separate.
+2. **Rate limits on the free tier:** are they enough to run a stack of 30 pages in a reasonable time in the demo? Measured so far: about 20 pages per session on Gemini before the quota stops it. With one call per page and a fallback provider (ADR-003) the chances are good, and there are also pre-saved results.
+3. **ID check digits in the samples:** do the IDs in the samples pass? Settled: 35 of 48 pass (ADR-014).
+4. **Multi-page forms:** are there any in the samples? Settled: no (ADR-015).
+5. **Cloud deployment:** which service for the backend and PostgreSQL. To be decided after submission.
+6. **Schema migrations:** there is no Alembic yet. A schema change currently needs a reset of the dev database.
 
-### יום 2
-- [ ] רמזי תבנית לשולחים העיקריים
-- [ ] חישוב ביטחון וקריאה שנייה לשדות לא בטוחים
-- [ ] ספק גיבוי במקרה של 429
-- [ ] מסך העלאה
-- [ ] טבלת בדיקה ומסך טופס בודד, כולל צירוף ופיצול טפסים
-- [ ] מסך רשומות עם סינון
-- [ ] זיהוי כפילויות
-- [ ] הרצת הערכה על סט הבדיקה
-- [ ] README, הוראות הפעלה וסיכום (גישה, מגבלות, מה נדרש למעבדה)
-- [ ] עיבוד מראש של ערימת ההדגמה ושמירה ב-DB (גיבוי למגבלת קצב)
-- [ ] חזרה על תסריט ההדגמה
+### For the organizers
+1. Does the hackathon provide credits for model APIs?
+2. Can the same commitment number appear in two valid records? (ADR-016)
 
 ---
 
-## 15. סיכונים
+## 14. Schedule (two days)
 
-| סיכון | התמודדות |
+### Day 1
+- [x] Project setup: folder structure (backend, venv, requirements, .gitignore, .env.example)
+- [~] Docker Compose and DB (compose file and DB code exist and pass tests on both SQLite and PostgreSQL 16)
+- [~] One API key for Gemini and one for Groq (keys are in `.env`; Groq is blocked on the current network)
+- [x] Ground truth: draft for all 48 pages
+- [x] Ground truth: manual verification
+- [x] Checks on the samples: ID check digits (ADR-014), multi-page forms (ADR-015), barcodes (section 2.1)
+- [x] Seed of the sender list and matching to it (section 5.4)
+- [x] PDF and HEIC conversion to images, barcode decoding, image enhancement (perspective, deskew, contrast)
+- [ ] Orientation detection and rotation (needs Tesseract with Hebrew installed)
+- [~] Basic extraction in one call with structured output, and a comparison experiment between the two providers (Gemini measured on 21 dev pages; Groq not yet)
+- [x] Normalization and validations
+- [x] Save to DB and basic API (FastAPI: upload, status, records, patch, approve, approve-clean, images)
+- [ ] Timing a stack of 30 pages
+- [x] First run of the evaluation script (partial, because of the Gemini rate limit)
+
+### Day 2
+- [ ] Template hints for the main senders
+- [~] Confidence calculation (done) and a second call for uncertain fields (not done)
+- [~] Fallback provider on a 429 (implemented and tested with a fake provider; not tried against Groq)
+- [ ] Upload screen
+- [ ] Review table and single-form screen, including attaching and splitting forms
+- [ ] Records screen with filtering
+- [~] Duplicate detection (hash and warnings done; UI not done)
+- [ ] Running the evaluation on the test set
+- [~] README (written), run instructions and summary (approach, limitations, what the lab needs)
+- [ ] Pre-processing the demo stack and saving it in the DB (backup for the rate limit)
+- [ ] Rehearsing the demo scenario
+
+---
+
+## 15. Risks
+
+| Risk | Mitigation |
 |---|---|
-| כתב יד עברי לא נקרא | לסמן ולא לנחש. השמות בדוגמאות ממילא שרבוט |
-| ברקודים לא מתפענחים בסריקה | אות נוסף בלבד, המערכת לא תלויה בו |
-| מגבלות קצב או עלות של ה-API | קריאה אחת לעמוד, עיבוד במקביל מוגבל, ספק גיבוי, ותוצאות שמורות מראש להדגמה |
-| ת"ז בדוגמאות נכשלות בספרת ביקורת | מצב `lenient` להדגמה ולהערכה (ADR-014) |
-| צילומי טלפון עקומים או סריקות חשוכות | שיפור תמונה מקומי, ושדות מסומנים כשהאיכות נמוכה |
-| התאמת יתר לדוגמאות | הפרדה בין סט פיתוח לסט בדיקה |
-| חוסר זמן לממשק | טבלת הבדיקה קודמת לכל מסך אחר |
+| Hebrew handwriting is not read | Flag and do not guess. The names in the samples are scribbles anyway |
+| Barcodes do not decode in a scan | An extra signal only, the system does not depend on it |
+| API rate limits or cost | One call per page, limited parallel processing, a fallback provider, and pre-saved results for the demo |
+| IDs in the samples fail the check digit | Settled: `strict` mode is kept (ADR-014) |
+| Skewed phone photos or dark scans | Local image enhancement, and fields flagged when quality is low |
+| Overfitting to the samples | Separation between a development set and a test set |
+| Not enough time for the UI | The review table comes before any other screen |
+| The only measured provider is rate limited and the second is blocked on this network | Test a second Gemini model, or run the Groq comparison from another network; pre-saved demo results |

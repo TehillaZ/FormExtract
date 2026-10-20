@@ -1,6 +1,7 @@
 from datetime import date
 
-from app.pipeline.extract import build_record, normalize_date
+from app.pipeline.extract import build_record
+from app.validation.dates import normalize_date
 from app.schemas import RawExtraction, RawValue as V
 
 

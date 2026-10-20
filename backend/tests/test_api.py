@@ -1,5 +1,4 @@
 """API tests with a fake vision provider: no network, no quota."""
-import io
 
 import cv2
 import numpy as np

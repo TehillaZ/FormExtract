@@ -80,9 +80,9 @@ def is_dark(gray: np.ndarray) -> bool:
 
 def enhance_contrast(img: np.ndarray) -> np.ndarray:
     lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
-    l, a, b = cv2.split(lab)
-    l = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(l)
-    return cv2.cvtColor(cv2.merge((l, a, b)), cv2.COLOR_LAB2BGR)
+    lightness, a, b = cv2.split(lab)
+    lightness = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(lightness)
+    return cv2.cvtColor(cv2.merge((lightness, a, b)), cv2.COLOR_LAB2BGR)
 
 
 def blur_score(gray: np.ndarray) -> float:

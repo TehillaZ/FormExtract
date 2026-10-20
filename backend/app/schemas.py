@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Literal, get_args
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field as PField, field_validator
 
-Source = Literal["printed", "handwritten", "sticker", "stamp", "barcode", "manual"]
+ModelSource = Literal["printed", "handwritten", "sticker", "stamp", "barcode"]
+Source = ModelSource | Literal["manual"]   # "manual" = typed by a person
 Confidence = Literal["high", "medium", "low"]
 
 
@@ -15,8 +16,14 @@ Confidence = Literal["high", "medium", "low"]
 
 class RawValue(BaseModel):
     value: str | None = None
-    source: Source | None = None
+    source: ModelSource | None = None
     highlighted: bool = False   # yellow marker on the page: the wanted value
+
+    @field_validator("source", mode="before")
+    @classmethod
+    def _known_source(cls, v):
+        # an unexpected label from the model must not fail the whole page
+        return v if v in get_args(ModelSource) else None
 
     @field_validator("highlighted", mode="before")
     @classmethod
@@ -93,4 +100,12 @@ class CommitmentRecord(BaseModel):
     status: Literal["pending", "approved"] = "pending"
     corrections: list[Correction] = []
     duplicate_warnings: list[str] = []   # filled when read, never stored
+
+    def all_fields(self) -> list[Field]:
+        return [self.first_name, self.last_name, self.id_number, self.received_date, self.sender,
+                *self.central_numbers, *self.commitment_numbers]
+
+    def needs_review(self) -> bool:
+        """True when any field is not high-confidence (shown orange in the UI)."""
+        return any(f.confidence != "high" for f in self.all_fields())
 

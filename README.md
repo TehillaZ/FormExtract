@@ -4,7 +4,7 @@ Extracts the required fields from Hebrew lab commitment forms (printed, scanned,
 
 Guiding principle: an empty, flagged field is always better than a guessed value. The system is judged not only by how often it is right, but by how well it knows when it is wrong.
 
-> Design, decisions (ADRs) and the day-by-day checklist live in [PLAN.md](PLAN.md) (Hebrew).
+> Design, decisions (ADRs) and the day-by-day checklist live in [PLAN.md](PLAN.md) (English; the UI itself is Hebrew).
 
 ## Status
 

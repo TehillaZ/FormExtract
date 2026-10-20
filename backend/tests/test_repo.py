@@ -93,3 +93,22 @@ def test_search_and_filters(s):
     assert len(repo.list_records(s, sender="מכבי")) == 1
     assert len(repo.list_records(s, date_from=date(2026, 7, 1))) == 1
     assert len(repo.list_records(s, status="approved")) == 0
+
+
+def test_listing_many_records_uses_a_constant_number_of_queries(s):
+    import sqlalchemy as sa
+    for i in range(25):
+        repo.save_record(s, make(commitment=f"7305{i:05d}", central=f"93{i:04d}"))
+    count = 0
+
+    def tick(*_):
+        nonlocal count
+        count += 1
+
+    engine = s.get_bind()
+    sa.event.listen(engine, "before_cursor_execute", tick)
+    try:
+        assert len(repo.list_records(s)) == 25
+    finally:
+        sa.event.remove(engine, "before_cursor_execute", tick)
+    assert count <= 8   # main query + 3 eager loads + 2 duplicate lookups; was ~5 per record

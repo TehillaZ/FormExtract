@@ -3,10 +3,9 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import cv2  # noqa: E402
-from evaluate import DATA, compare, load_truth  # noqa: E402
+from app.evaluation import DATA, load_truth, score_record  # noqa: E402
 from app.pipeline.barcodes import decode_barcodes  # noqa: E402
 from app.pipeline.extract import build_record  # noqa: E402
 from app.schemas import RawExtraction  # noqa: E402
@@ -19,7 +18,7 @@ for f in sorted(cache.glob("*.json")):
     bc = [b.text for b in decode_barcodes(cv2.imread(str(DATA / "pages" / f"{page}.png")))]
     rec = build_record(raw, bc)
     t = truth[page]
-    for field, (ok, flagged) in compare(rec, t).items():
+    for field, (ok, flagged) in score_record(rec, t).items():
         if ok:
             continue
         got = getattr(rec, field)
