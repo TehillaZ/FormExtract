@@ -1,16 +1,21 @@
+import os
 from datetime import date
 
 import pytest
 
 import app.db.session as session_mod
 from app.db import repo
+from app.db.models import Base
 from app.pipeline.extract import build_record
 from app.schemas import RawExtraction, RawValue as V
 
 
 @pytest.fixture()
 def s():
-    session_mod.init_db("sqlite://")
+    """In-memory SQLite by default; set TEST_DATABASE_URL to run the same tests on PostgreSQL."""
+    engine = session_mod.init_db(os.environ.get("TEST_DATABASE_URL", "sqlite://"))
+    Base.metadata.drop_all(engine)
+    Base.metadata.create_all(engine)
     with session_mod._factory() as sess:
         yield sess
 

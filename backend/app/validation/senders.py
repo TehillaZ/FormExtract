@@ -56,3 +56,9 @@ def match_sender(raw: str | None, fuzzy_threshold: float = 0.85) -> SenderMatch 
     if SequenceMatcher(None, text, best[0]).ratio() >= fuzzy_threshold:
         return SenderMatch(best[1], best[2], exact=False)
     return None
+
+
+def all_senders() -> list[str]:
+    """Canonical names of the closed list (for dropdowns)."""
+    data = json.loads(SENDERS_FILE.read_text(encoding="utf-8"))
+    return sorted(s["name"] for s in data["senders"])

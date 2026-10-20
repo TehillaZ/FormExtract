@@ -35,6 +35,7 @@ class Page(Base):
     error: Mapped[str | None] = mapped_column(sa.Text)
     image_path: Mapped[str | None] = mapped_column(sa.String(500))          # enhanced image
     original_path: Mapped[str | None] = mapped_column(sa.String(500))
+    record_id: Mapped[uuid.UUID | None] = mapped_column(sa.Uuid, index=True)   # record built from this page
     raw_extraction: Mapped[dict | None] = mapped_column(sa.JSON)            # what the model returned
     barcodes: Mapped[list | None] = mapped_column(sa.JSON)
     document: Mapped[Document] = relationship(back_populates="pages")

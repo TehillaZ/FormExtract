@@ -80,6 +80,7 @@ class CommitmentRecord(BaseModel):
     id: UUID = PField(default_factory=uuid4)
     document_id: UUID | None = None
     page_numbers: list[int] = []
+    page_ids: list[UUID] = []
     template: str | None = None
     provider: str | None = None
     first_name: Field = PField(default_factory=Field)
@@ -92,3 +93,4 @@ class CommitmentRecord(BaseModel):
     status: Literal["pending", "approved"] = "pending"
     corrections: list[Correction] = []
     duplicate_warnings: list[str] = []   # filled when read, never stored
+

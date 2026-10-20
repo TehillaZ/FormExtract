@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
+
 import sqlalchemy as sa
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -19,6 +21,19 @@ def init_db(url: str | None = None) -> sa.Engine:
     Base.metadata.create_all(_engine)
     _factory = sessionmaker(_engine, expire_on_commit=False)
     return _engine
+
+
+def is_initialized() -> bool:
+    return _factory is not None
+
+
+@contextmanager
+def session_scope():
+    """For background work outside a request."""
+    if _factory is None:
+        init_db()
+    with _factory() as s:
+        yield s
 
 
 def get_session():

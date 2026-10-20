@@ -95,7 +95,8 @@ def find_duplicates(s: Session, row: Record) -> list[str]:
 
 def list_records(s: Session, *, status: str | None = None, sender: str | None = None,
                  date_from: date | None = None, date_to: date | None = None, q: str | None = None,
-                 needs_review: bool | None = None, limit: int = 200, offset: int = 0) -> list[CommitmentRecord]:
+                 needs_review: bool | None = None, document_ids: list[uuid.UUID] | None = None,
+                 limit: int = 200, offset: int = 0) -> list[CommitmentRecord]:
     stmt = sa.select(Record).order_by(Record.created_at.desc(), Record.id)
     if status:
         stmt = stmt.where(Record.status == status)
@@ -107,6 +108,8 @@ def list_records(s: Session, *, status: str | None = None, sender: str | None = 
         stmt = stmt.where(Record.received_date <= date_to)
     if needs_review is not None:
         stmt = stmt.where(Record.needs_review == needs_review)
+    if document_ids:
+        stmt = stmt.where(Record.document_id.in_(document_ids))
     if q and q.strip():
         like = f"%{q.strip()}%"
         stmt = stmt.where(sa.or_(
@@ -228,3 +231,15 @@ def approve_record(s: Session, record_id: uuid.UUID) -> CommitmentRecord:
         ).scalars().all()
         raise DuplicateCommitmentError(sorted(set(taken))) from None
     return get_record(s, record_id)
+
+
+def approve_clean(s: Session, document_ids: list[uuid.UUID] | None = None) -> tuple[list[uuid.UUID], list[uuid.UUID]]:
+    """Approve every pending record with nothing to review. Returns (approved, skipped because of a duplicate)."""
+    approved, skipped = [], []
+    for rec in list_records(s, status="pending", needs_review=False, document_ids=document_ids, limit=10_000):
+        try:
+            approve_record(s, rec.id)
+            approved.append(rec.id)
+        except DuplicateCommitmentError:
+            skipped.append(rec.id)
+    return approved, skipped
