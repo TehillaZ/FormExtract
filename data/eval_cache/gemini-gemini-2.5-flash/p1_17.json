@@ -1,0 +1,43 @@
+{
+ "template": "rosenblatt_lab",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "שלמה",
+  "source": "handwritten"
+ },
+ "last_name": {
+  "value": "לוי",
+  "source": "handwritten"
+ },
+ "id_numbers": [
+  {
+   "value": "11223344",
+   "source": "sticker"
+  }
+ ],
+ "central_numbers": [],
+ "received_date": {
+  "value": "12-08-2026",
+  "source": "stamp"
+ },
+ "stamp_date": {
+  "value": "12-08-2026",
+  "source": "stamp"
+ },
+ "handwritten_date": {
+  "value": "11.8.2026",
+  "source": "handwritten"
+ },
+ "sender": {
+  "value": null,
+  "source": null
+ },
+ "commitment_numbers": [
+  {
+   "value": "945926",
+   "source": "printed"
+  }
+ ]
+}

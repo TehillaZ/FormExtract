@@ -1,0 +1,79 @@
+{
+ "template": "clalit_lab_report",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "פרו",
+  "source": "handwritten",
+  "highlighted": true
+ },
+ "last_name": {
+  "value": "פרג",
+  "source": "handwritten",
+  "highlighted": true
+ },
+ "id_numbers": [
+  {
+   "value": "001223344",
+   "source": "handwritten",
+   "highlighted": true
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "939443",
+   "source": "sticker",
+   "highlighted": true
+  }
+ ],
+ "received_date": {
+  "value": "18/06/2023",
+  "source": "stamp",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": "18/06/2023",
+  "source": "stamp",
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "sender": {
+  "value": "כללית",
+  "source": "printed",
+  "highlighted": true
+ },
+ "other_senders": [
+  {
+   "value": "המעבדה המרכזית",
+   "source": null,
+   "highlighted": false
+  },
+  {
+   "value": "ד\"ר הנשיא שלי",
+   "source": null,
+   "highlighted": false
+  },
+  {
+   "value": "רמת יצחק שני",
+   "source": null,
+   "highlighted": false
+  }
+ ],
+ "commitment_numbers": [
+  {
+   "value": "483263113",
+   "source": "printed",
+   "highlighted": false
+  },
+  {
+   "value": "483263113",
+   "source": "printed",
+   "highlighted": false
+  }
+ ]
+}

@@ -1,5 +1,5 @@
 .env
-data/
+data/pages/
 backend/.venv/
 __pycache__/
 *.pyc

@@ -1,0 +1,60 @@
+{
+ "template": "igy_lab_form",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "Dona",
+  "source": "handwritten"
+ },
+ "last_name": {
+  "value": "Chi Kung",
+  "source": "handwritten"
+ },
+ "id_numbers": [
+  {
+   "value": "11223344",
+   "source": "handwritten"
+  },
+  {
+   "value": "02000000",
+   "source": "handwritten"
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "944963",
+   "source": "printed"
+  },
+  {
+   "value": "944964",
+   "source": "printed"
+  }
+ ],
+ "received_date": {
+  "value": "05-08-2026",
+  "source": "stamp"
+ },
+ "stamp_date": {
+  "value": "05-08-2026",
+  "source": "stamp"
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null
+ },
+ "sender": {
+  "value": null,
+  "source": null
+ },
+ "commitment_numbers": [
+  {
+   "value": "944963",
+   "source": "printed"
+  },
+  {
+   "value": "944964",
+   "source": "printed"
+  }
+ ]
+}

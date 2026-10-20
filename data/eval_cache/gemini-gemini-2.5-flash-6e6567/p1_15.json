@@ -1,0 +1,68 @@
+{
+ "template": "hospital_screenshot",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "last_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "11923344",
+   "source": "handwritten",
+   "highlighted": true
+  }
+ ],
+ "central_numbers": [],
+ "received_date": {
+  "value": "10/08/2026",
+  "source": "stamp",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": "10/08/2026",
+  "source": "stamp",
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": "10/08/2026",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "sender": {
+  "value": "רמב\"ם",
+  "source": "printed",
+  "highlighted": true
+ },
+ "other_senders": [
+  {
+   "value": "המעבדה המרכזית לנגיפים - תל-השומר",
+   "source": null,
+   "highlighted": false
+  },
+  {
+   "value": "מרכז ארצי לנגיפים זואונוטיים",
+   "source": null,
+   "highlighted": false
+  }
+ ],
+ "commitment_numbers": [
+  {
+   "value": "944000351",
+   "source": "printed",
+   "highlighted": false
+  },
+  {
+   "value": "945504",
+   "source": "printed",
+   "highlighted": false
+  }
+ ]
+}

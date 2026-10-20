@@ -1,0 +1,47 @@
+{
+ "template": "maccabi_commitment",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "Roe",
+  "source": "handwritten"
+ },
+ "last_name": {
+  "value": "Roe",
+  "source": "handwritten"
+ },
+ "id_numbers": [
+  {
+   "value": "11223344",
+   "source": "handwritten"
+  },
+  {
+   "value": "0011223344",
+   "source": "printed"
+  }
+ ],
+ "central_numbers": [],
+ "received_date": {
+  "value": null,
+  "source": null
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null
+ },
+ "sender": {
+  "value": "מכבי",
+  "source": "printed"
+ },
+ "commitment_numbers": [
+  {
+   "value": "260630224",
+   "source": "printed"
+  }
+ ]
+}

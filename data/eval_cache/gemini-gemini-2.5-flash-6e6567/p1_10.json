@@ -1,0 +1,84 @@
+{
+ "template": "maccabi_lab",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "רוני",
+  "source": "handwritten",
+  "highlighted": true
+ },
+ "last_name": {
+  "value": "רוזן",
+  "source": "handwritten",
+  "highlighted": true
+ },
+ "id_numbers": [
+  {
+   "value": "0011223344",
+   "source": "handwritten",
+   "highlighted": true
+  },
+  {
+   "value": "0011223344",
+   "source": "printed",
+   "highlighted": false
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "939395",
+   "source": "handwritten",
+   "highlighted": true
+  }
+ ],
+ "received_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "sender": {
+  "value": "מכבי שירותי בריאות",
+  "source": "printed",
+  "highlighted": true
+ },
+ "other_senders": [
+  {
+   "value": "שער בנימין - מועצה מרכז רפואי: שער בנימין",
+   "source": null,
+   "highlighted": false
+  }
+ ],
+ "commitment_numbers": [
+  {
+   "value": "260630224",
+   "source": "printed",
+   "highlighted": true
+  },
+  {
+   "value": "18062026",
+   "source": "printed",
+   "highlighted": false
+  },
+  {
+   "value": "260630224",
+   "source": "printed",
+   "highlighted": false
+  },
+  {
+   "value": "260630224",
+   "source": "printed",
+   "highlighted": false
+  }
+ ]
+}

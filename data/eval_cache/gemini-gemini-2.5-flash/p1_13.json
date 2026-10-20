@@ -1,0 +1,55 @@
+{
+ "template": "shaare_zedek_form",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "יוסי",
+  "source": "handwritten"
+ },
+ "last_name": {
+  "value": "פרו",
+  "source": "handwritten"
+ },
+ "id_numbers": [
+  {
+   "value": "11223344",
+   "source": "handwritten"
+  },
+  {
+   "value": "11223344",
+   "source": "printed"
+  }
+ ],
+ "central_numbers": [],
+ "received_date": {
+  "value": null,
+  "source": null
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null
+ },
+ "sender": {
+  "value": "המרכז הרפואי שערי צדק",
+  "source": "printed"
+ },
+ "commitment_numbers": [
+  {
+   "value": "251493",
+   "source": "printed"
+  },
+  {
+   "value": "251493",
+   "source": "printed"
+  },
+  {
+   "value": "07224517",
+   "source": "handwritten"
+  }
+ ]
+}

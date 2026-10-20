@@ -1,0 +1,48 @@
+{
+ "template": "carmel_lab_results",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "שם",
+  "source": "printed"
+ },
+ "last_name": {
+  "value": "שם",
+  "source": "printed"
+ },
+ "id_numbers": [
+  {
+   "value": "1223344",
+   "source": "handwritten"
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "946284",
+   "source": "sticker"
+  }
+ ],
+ "received_date": {
+  "value": "16/8/26",
+  "source": "handwritten"
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null
+ },
+ "handwritten_date": {
+  "value": "16/8/26",
+  "source": "handwritten"
+ },
+ "sender": {
+  "value": "כרמל",
+  "source": "printed"
+ },
+ "commitment_numbers": [
+  {
+   "value": "11118052",
+   "source": "printed"
+  }
+ ]
+}

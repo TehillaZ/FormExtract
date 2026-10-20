@@ -1,0 +1,47 @@
+{
+ "template": "hospital_screenshot",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": null,
+  "source": null
+ },
+ "last_name": {
+  "value": null,
+  "source": null
+ },
+ "id_numbers": [
+  {
+   "value": "001122334",
+   "source": "printed"
+  }
+ ],
+ "central_numbers": [],
+ "received_date": {
+  "value": null,
+  "source": null
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null
+ },
+ "sender": {
+  "value": "לאומית",
+  "source": "printed"
+ },
+ "commitment_numbers": [
+  {
+   "value": "127138045",
+   "source": "printed"
+  },
+  {
+   "value": "939873",
+   "source": "handwritten"
+  }
+ ]
+}

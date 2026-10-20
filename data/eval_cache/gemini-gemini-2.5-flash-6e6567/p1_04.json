@@ -1,0 +1,57 @@
+{
+ "template": "hospital_screenshot",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "last_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "id_numbers": [],
+ "central_numbers": [
+  {
+   "value": "939135",
+   "source": "handwritten",
+   "highlighted": true
+  },
+  {
+   "value": "161686",
+   "source": "handwritten",
+   "highlighted": true
+  }
+ ],
+ "received_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "sender": {
+  "value": "כללית",
+  "source": "printed",
+  "highlighted": true
+ },
+ "other_senders": [],
+ "commitment_numbers": [
+  {
+   "value": "000302651707",
+   "source": "printed",
+   "highlighted": true
+  }
+ ]
+}

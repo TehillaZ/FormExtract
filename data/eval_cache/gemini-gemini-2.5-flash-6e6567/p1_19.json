@@ -1,0 +1,68 @@
+{
+ "template": "hospital_screenshot",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "boei. Gaei",
+  "source": "handwritten",
+  "highlighted": true
+ },
+ "last_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "12707166",
+   "source": "sticker",
+   "highlighted": false
+  },
+  {
+   "value": "11223344",
+   "source": "handwritten",
+   "highlighted": true
+  }
+ ],
+ "central_numbers": [],
+ "received_date": {
+  "value": "13.8.26",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": "13.8.26",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "sender": {
+  "value": "רמב\"ם - הקריה הרפואית לבריאות האדם",
+  "source": "printed",
+  "highlighted": true
+ },
+ "other_senders": [
+  {
+   "value": "פנימי, י.ד.",
+   "source": null,
+   "highlighted": false
+  }
+ ],
+ "commitment_numbers": [
+  {
+   "value": "944000361",
+   "source": "printed",
+   "highlighted": false
+  },
+  {
+   "value": "000361",
+   "source": "printed",
+   "highlighted": true
+  }
+ ]
+}

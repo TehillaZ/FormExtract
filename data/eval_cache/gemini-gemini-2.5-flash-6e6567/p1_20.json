@@ -1,0 +1,69 @@
+{
+ "template": "idf_meditik_form",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "last_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "11223344",
+   "source": "handwritten",
+   "highlighted": true
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "946854",
+   "source": "sticker",
+   "highlighted": false
+  }
+ ],
+ "received_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "sender": {
+  "value": "שונא (תל השומר)/מעבדות",
+  "source": "printed",
+  "highlighted": false
+ },
+ "other_senders": [
+  {
+   "value": "צה\"ל חיל הרפואה - MediTik",
+   "source": null,
+   "highlighted": false
+  }
+ ],
+ "commitment_numbers": [
+  {
+   "value": "109982530",
+   "source": "printed",
+   "highlighted": true
+  },
+  {
+   "value": "34811394",
+   "source": "printed",
+   "highlighted": false
+  }
+ ]
+}

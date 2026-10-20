@@ -1,0 +1,91 @@
+{
+ "template": "maccabi_lab",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": null,
+  "source": null
+ },
+ "last_name": {
+  "value": null,
+  "source": null
+ },
+ "id_numbers": [
+  {
+   "value": "11223344",
+   "source": "handwritten"
+  },
+  {
+   "value": "11223344",
+   "source": "handwritten"
+  }
+ ],
+ "central_numbers": [],
+ "received_date": {
+  "value": "01/06/2026",
+  "source": "stamp"
+ },
+ "stamp_date": {
+  "value": "01/06/2026",
+  "source": "stamp"
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null
+ },
+ "sender": {
+  "value": "קופ\"ח מכבי",
+  "source": "printed"
+ },
+ "commitment_numbers": [
+  {
+   "value": "606/50364186",
+   "source": "printed"
+  },
+  {
+   "value": "04-61619993555",
+   "source": "printed"
+  },
+  {
+   "value": "50364186-(713)",
+   "source": "printed"
+  },
+  {
+   "value": "50364186-(713)",
+   "source": "printed"
+  },
+  {
+   "value": "50364186-(700)",
+   "source": "printed"
+  },
+  {
+   "value": "2344938",
+   "source": "barcode"
+  },
+  {
+   "value": "2344936",
+   "source": "barcode"
+  },
+  {
+   "value": "2344937",
+   "source": "barcode"
+  },
+  {
+   "value": "50364186",
+   "source": "printed"
+  },
+  {
+   "value": "937309",
+   "source": "barcode"
+  },
+  {
+   "value": "937310",
+   "source": "barcode"
+  },
+  {
+   "value": "937311",
+   "source": "barcode"
+  }
+ ]
+}

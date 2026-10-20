@@ -1,0 +1,60 @@
+{
+ "template": "clalit_form17",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": null,
+  "source": null
+ },
+ "last_name": {
+  "value": null,
+  "source": null
+ },
+ "id_numbers": [
+  {
+   "value": "308462795",
+   "source": "printed"
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "939539",
+   "source": "barcode"
+  },
+  {
+   "value": "304497989",
+   "source": "printed"
+  }
+ ],
+ "received_date": {
+  "value": "21-06-2026",
+  "source": "stamp"
+ },
+ "stamp_date": {
+  "value": "21-06-2026",
+  "source": "stamp"
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null
+ },
+ "sender": {
+  "value": "כללית",
+  "source": "printed"
+ },
+ "commitment_numbers": [
+  {
+   "value": "01122334",
+   "source": "printed"
+  },
+  {
+   "value": "304497989",
+   "source": "printed"
+  },
+  {
+   "value": "939539",
+   "source": "barcode"
+  }
+ ]
+}

@@ -1,0 +1,43 @@
+{
+ "template": "hospital_form",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "פרי רון",
+  "source": "handwritten"
+ },
+ "last_name": {
+  "value": "פרי רון",
+  "source": "handwritten"
+ },
+ "id_numbers": [
+  {
+   "value": "100223344",
+   "source": "handwritten"
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "947682",
+   "source": "barcode"
+  }
+ ],
+ "received_date": {
+  "value": null,
+  "source": null
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null
+ },
+ "sender": {
+  "value": "א.נ. בית חולים לילדים \"מאייר\" מרכז רפואי רמב\"ם",
+  "source": "printed"
+ },
+ "commitment_numbers": []
+}

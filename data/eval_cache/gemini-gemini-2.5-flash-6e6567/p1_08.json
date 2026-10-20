@@ -1,0 +1,64 @@
+{
+ "template": "leumit_lab",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "last_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "0011223344",
+   "source": "handwritten",
+   "highlighted": true
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "939404",
+   "source": "sticker",
+   "highlighted": false
+  }
+ ],
+ "received_date": {
+  "value": "18-06-2026",
+  "source": "stamp",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": "18-06-2026",
+  "source": "stamp",
+  "highlighted": true
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "sender": {
+  "value": "לאומית שירותי בריאות",
+  "source": "printed",
+  "highlighted": true
+ },
+ "other_senders": [
+  {
+   "value": "בית ג'אן",
+   "source": null,
+   "highlighted": false
+  }
+ ],
+ "commitment_numbers": [
+  {
+   "value": "990012538",
+   "source": "printed",
+   "highlighted": true
+  }
+ ]
+}

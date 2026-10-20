@@ -1,0 +1,55 @@
+{
+ "template": "meuhedet_screenshot",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": null,
+  "source": null
+ },
+ "last_name": {
+  "value": null,
+  "source": null
+ },
+ "id_numbers": [
+  {
+   "value": "30530668",
+   "source": "printed"
+  },
+  {
+   "value": "0012233",
+   "source": "handwritten"
+  }
+ ],
+ "central_numbers": [],
+ "received_date": {
+  "value": null,
+  "source": null
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null
+ },
+ "sender": {
+  "value": "מאוחדת",
+  "source": "printed"
+ },
+ "commitment_numbers": [
+  {
+   "value": "730542025",
+   "source": "printed"
+  },
+  {
+   "value": "939158",
+   "source": "handwritten"
+  },
+  {
+   "value": "161626",
+   "source": "handwritten"
+  }
+ ]
+}

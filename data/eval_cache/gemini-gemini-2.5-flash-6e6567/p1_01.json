@@ -1,0 +1,69 @@
+{
+ "template": "meuhedet_commitment",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "רונן",
+  "source": "handwritten",
+  "highlighted": true
+ },
+ "last_name": {
+  "value": "פלג",
+  "source": "handwritten",
+  "highlighted": true
+ },
+ "id_numbers": [
+  {
+   "value": "0011223344",
+   "source": "handwritten",
+   "highlighted": true
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "939376",
+   "source": "printed",
+   "highlighted": true
+  }
+ ],
+ "received_date": {
+  "value": "18-06-2026",
+  "source": "stamp",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": "18-06-2026",
+  "source": "handwritten",
+  "highlighted": true
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "sender": {
+  "value": "בי\"ח תל השומר ע\"ש שיבא",
+  "source": "printed",
+  "highlighted": false
+ },
+ "other_senders": [
+  {
+   "value": "מאוחדת",
+   "source": null,
+   "highlighted": false
+  }
+ ],
+ "commitment_numbers": [
+  {
+   "value": "730578626",
+   "source": "printed",
+   "highlighted": true
+  },
+  {
+   "value": "0046025783",
+   "source": "printed",
+   "highlighted": false
+  }
+ ]
+}

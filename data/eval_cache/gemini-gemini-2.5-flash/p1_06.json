@@ -1,0 +1,48 @@
+{
+ "template": "clalit_lab_referral",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "פרו",
+  "source": "handwritten"
+ },
+ "last_name": {
+  "value": "פרג",
+  "source": "printed"
+ },
+ "id_numbers": [
+  {
+   "value": "001223344",
+   "source": "handwritten"
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "939443",
+   "source": "sticker"
+  }
+ ],
+ "received_date": {
+  "value": "18-06-2026",
+  "source": "stamp"
+ },
+ "stamp_date": {
+  "value": "18-06-2026",
+  "source": "stamp"
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null
+ },
+ "sender": {
+  "value": "כללית",
+  "source": "printed"
+ },
+ "commitment_numbers": [
+  {
+   "value": "483263113",
+   "source": "printed"
+  }
+ ]
+}

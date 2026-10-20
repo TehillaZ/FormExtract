@@ -1,0 +1,74 @@
+{
+ "template": "carmel_lab_report",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "יסמין",
+  "source": "printed",
+  "highlighted": true
+ },
+ "last_name": {
+  "value": "שפיר",
+  "source": "printed",
+  "highlighted": true
+ },
+ "id_numbers": [
+  {
+   "value": "1223344",
+   "source": "printed",
+   "highlighted": true
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "946284",
+   "source": "barcode",
+   "highlighted": false
+  }
+ ],
+ "received_date": {
+  "value": "16/08/2026",
+  "source": "handwritten",
+  "highlighted": true
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": "16/08/2026",
+  "source": "handwritten",
+  "highlighted": true
+ },
+ "sender": {
+  "value": "מרכז רפואי כרמל",
+  "source": "printed",
+  "highlighted": true
+ },
+ "other_senders": [
+  {
+   "value": "כללית",
+   "source": null,
+   "highlighted": false
+  }
+ ],
+ "commitment_numbers": [
+  {
+   "value": "1118052",
+   "source": "printed",
+   "highlighted": true
+  },
+  {
+   "value": "1118052",
+   "source": "printed",
+   "highlighted": false
+  },
+  {
+   "value": "232542386701",
+   "source": "printed",
+   "highlighted": false
+  }
+ ]
+}

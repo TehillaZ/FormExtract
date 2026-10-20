@@ -1,0 +1,55 @@
+{
+ "template": "rambam_commitment",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "פנינה",
+  "source": "handwritten"
+ },
+ "last_name": {
+  "value": "לוי",
+  "source": "handwritten"
+ },
+ "id_numbers": [
+  {
+   "value": "11223344",
+   "source": "handwritten"
+  },
+  {
+   "value": "12707166",
+   "source": "sticker"
+  }
+ ],
+ "central_numbers": [],
+ "received_date": {
+  "value": "13.8.26",
+  "source": "handwritten"
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null
+ },
+ "handwritten_date": {
+  "value": "13.8.26",
+  "source": "handwritten"
+ },
+ "sender": {
+  "value": "רמב\"ם - הקריה הרפואית לבריאות האדם",
+  "source": "printed"
+ },
+ "commitment_numbers": [
+  {
+   "value": "944000361",
+   "source": "printed"
+  },
+  {
+   "value": "946019",
+   "source": "handwritten"
+  },
+  {
+   "value": "000361",
+   "source": "printed"
+  }
+ ]
+}

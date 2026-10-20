@@ -1,0 +1,52 @@
+{
+ "template": "rosenblatt_lab",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "last_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "11223344",
+   "source": "sticker",
+   "highlighted": true
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "945926",
+   "source": "barcode",
+   "highlighted": false
+  }
+ ],
+ "received_date": {
+  "value": "11.8.2026",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": "11.8.2026",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "sender": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "other_senders": [],
+ "commitment_numbers": []
+}

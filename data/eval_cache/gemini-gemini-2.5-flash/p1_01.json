@@ -1,0 +1,47 @@
+{
+ "template": "meuhedet_commitment",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": null,
+  "source": null
+ },
+ "last_name": {
+  "value": null,
+  "source": null
+ },
+ "id_numbers": [
+  {
+   "value": "0011223344",
+   "source": "printed"
+  }
+ ],
+ "central_numbers": [],
+ "received_date": {
+  "value": "18 -06- 2026",
+  "source": "stamp"
+ },
+ "stamp_date": {
+  "value": "18 -06- 2026",
+  "source": "stamp"
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null
+ },
+ "sender": {
+  "value": "מאוחדת",
+  "source": "printed"
+ },
+ "commitment_numbers": [
+  {
+   "value": "0046025783",
+   "source": "printed"
+  },
+  {
+   "value": "730578626",
+   "source": "printed"
+  }
+ ]
+}

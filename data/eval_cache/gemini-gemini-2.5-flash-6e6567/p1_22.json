@@ -1,0 +1,58 @@
+{
+ "template": "maccabi_lab",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "Lea",
+  "source": "handwritten",
+  "highlighted": true
+ },
+ "last_name": {
+  "value": "Rea",
+  "source": "handwritten",
+  "highlighted": true
+ },
+ "id_numbers": [
+  {
+   "value": "1223344",
+   "source": "handwritten",
+   "highlighted": true
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "947683",
+   "source": "barcode",
+   "highlighted": false
+  }
+ ],
+ "received_date": {
+  "value": "26.8.26",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": "26.8.26",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "sender": {
+  "value": "א.נ.א. מעבדות קליניות בע\"מ",
+  "source": "printed",
+  "highlighted": true
+ },
+ "other_senders": [
+  {
+   "value": "מכבי שירותי בריאות",
+   "source": null,
+   "highlighted": false
+  }
+ ],
+ "commitment_numbers": []
+}

@@ -1,0 +1,68 @@
+{
+ "template": "igy_lab",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "Donaue",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "last_name": {
+  "value": "Gora",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "11223344",
+   "source": "handwritten",
+   "highlighted": true
+  },
+  {
+   "value": "02000000",
+   "source": "handwritten",
+   "highlighted": true
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "944963",
+   "source": "barcode",
+   "highlighted": true
+  },
+  {
+   "value": "944964",
+   "source": "barcode",
+   "highlighted": true
+  }
+ ],
+ "received_date": {
+  "value": "05-08-2026",
+  "source": "stamp",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": "05-08-2026",
+  "source": "stamp",
+  "highlighted": true
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "sender": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "other_senders": [
+  {
+   "value": "משרד הבריאות",
+   "source": null,
+   "highlighted": false
+  }
+ ],
+ "commitment_numbers": []
+}

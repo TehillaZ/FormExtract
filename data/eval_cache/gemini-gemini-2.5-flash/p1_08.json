@@ -1,0 +1,51 @@
+{
+ "template": "leumit_lab_report",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": null,
+  "source": null
+ },
+ "last_name": {
+  "value": null,
+  "source": null
+ },
+ "id_numbers": [
+  {
+   "value": "0011223344",
+   "source": "handwritten"
+  }
+ ],
+ "central_numbers": [],
+ "received_date": {
+  "value": "18/06/2026",
+  "source": "stamp"
+ },
+ "stamp_date": {
+  "value": "18/06/2026",
+  "source": "stamp"
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null
+ },
+ "sender": {
+  "value": "לאומית שירותי בריאות",
+  "source": "printed"
+ },
+ "commitment_numbers": [
+  {
+   "value": "939404",
+   "source": "barcode"
+  },
+  {
+   "value": "990012538",
+   "source": "barcode"
+  },
+  {
+   "value": "600-6001",
+   "source": "handwritten"
+  }
+ ]
+}

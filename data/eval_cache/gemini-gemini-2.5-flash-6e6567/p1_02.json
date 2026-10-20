@@ -1,0 +1,68 @@
+{
+ "template": "hospital_screenshot",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "last_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "0012233",
+   "source": "printed",
+   "highlighted": false
+  },
+  {
+   "value": "30530668",
+   "source": "printed",
+   "highlighted": false
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "939158",
+   "source": "handwritten",
+   "highlighted": true
+  },
+  {
+   "value": "1616126",
+   "source": "handwritten",
+   "highlighted": true
+  }
+ ],
+ "received_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "sender": {
+  "value": "מאוחדת",
+  "source": "printed",
+  "highlighted": true
+ },
+ "other_senders": [],
+ "commitment_numbers": [
+  {
+   "value": "730542025",
+   "source": "printed",
+   "highlighted": true
+  }
+ ]
+}

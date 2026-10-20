@@ -1,0 +1,444 @@
+{
+ "source": "Shared list of kupot and hospitals (user-provided, 2026-10-19) + senders found in the sample forms",
+ "senders": [
+  {
+   "name": "כללית",
+   "category": "kupa",
+   "aliases": [
+    "שירותי בריאות כללית",
+    "קופת חולים כללית",
+    "Clalit"
+   ]
+  },
+  {
+   "name": "מכבי",
+   "category": "kupa",
+   "aliases": [
+    "מכבי שירותי בריאות",
+    "Maccabi"
+   ]
+  },
+  {
+   "name": "מאוחדת",
+   "category": "kupa",
+   "aliases": [
+    "קופת חולים מאוחדת",
+    "Meuhedet"
+   ]
+  },
+  {
+   "name": "לאומית",
+   "category": "kupa",
+   "aliases": [
+    "לאומית שירותי בריאות",
+    "Leumit"
+   ]
+  },
+  {
+   "name": "המרכז הרפואי ע\"ש חיים שיבא - תל השומר",
+   "category": "hospital",
+   "aliases": [
+    "שיבא",
+    "תל השומר",
+    "Sheba"
+   ]
+  },
+  {
+   "name": "המרכז הרפואי תל אביב ע\"ש סוראסקי (איכילוב)",
+   "category": "hospital",
+   "aliases": [
+    "איכילוב",
+    "סוראסקי",
+    "Ichilov"
+   ]
+  },
+  {
+   "name": "המרכז הרפואי ע\"ש אדית וולפסון",
+   "category": "hospital",
+   "aliases": [
+    "וולפסון",
+    "Wolfson"
+   ]
+  },
+  {
+   "name": "המרכז הרפואי הלל יפה",
+   "category": "hospital",
+   "aliases": [
+    "הלל יפה",
+    "Hillel Yaffe"
+   ]
+  },
+  {
+   "name": "רמב\"ם - הקריה הרפואית לבריאות האדם",
+   "category": "hospital",
+   "aliases": [
+    "רמב\"ם",
+    "Rambam"
+   ]
+  },
+  {
+   "name": "מרכז רפואי בני ציון",
+   "category": "hospital",
+   "aliases": [
+    "בני ציון",
+    "Bnai Zion"
+   ]
+  },
+  {
+   "name": "המרכז הרפואי לגליל",
+   "category": "hospital",
+   "aliases": [
+    "נהריה",
+    "Galilee"
+   ]
+  },
+  {
+   "name": "המרכז הרפואי זיו",
+   "category": "hospital",
+   "aliases": [
+    "זיו",
+    "Ziv"
+   ]
+  },
+  {
+   "name": "המרכז הרפואי צפון - פוריה",
+   "category": "hospital",
+   "aliases": [
+    "פוריה",
+    "צפון פוריה",
+    "ברוך פדה",
+    "Poriya"
+   ]
+  },
+  {
+   "name": "מרכז רפואי ברזילי",
+   "category": "hospital",
+   "aliases": [
+    "ברזילי",
+    "Barzilai"
+   ]
+  },
+  {
+   "name": "המרכז הרפואי שמיר - אסף הרופא",
+   "category": "hospital",
+   "aliases": [
+    "שמיר",
+    "אסף הרופא",
+    "Shamir"
+   ]
+  },
+  {
+   "name": "המרכז הרפואי האוניברסיטאי סורוקה",
+   "category": "hospital",
+   "aliases": [
+    "סורוקה",
+    "Soroka"
+   ]
+  },
+  {
+   "name": "מרכז רפואי רבין - קמפוס בילינסון",
+   "category": "hospital",
+   "aliases": [
+    "בילינסון",
+    "Beilinson"
+   ]
+  },
+  {
+   "name": "מרכז רפואי רבין - קמפוס גולדה השרון",
+   "category": "hospital",
+   "aliases": [
+    "השרון",
+    "גולדה השרון",
+    "Hasharon"
+   ]
+  },
+  {
+   "name": "מרכז שניידר לרפואת ילדים בישראל",
+   "category": "hospital",
+   "aliases": [
+    "שניידר",
+    "Schneider"
+   ]
+  },
+  {
+   "name": "המרכז הרפואי כרמל",
+   "category": "hospital",
+   "aliases": [
+    "כרמל",
+    "Carmel"
+   ]
+  },
+  {
+   "name": "מרכז רפואי העמק",
+   "category": "hospital",
+   "aliases": [
+    "העמק",
+    "Haemek"
+   ]
+  },
+  {
+   "name": "מרכז רפואי מאיר",
+   "category": "hospital",
+   "aliases": [
+    "מאיר",
+    "Meir"
+   ]
+  },
+  {
+   "name": "מרכז רפואי קפלן",
+   "category": "hospital",
+   "aliases": [
+    "קפלן",
+    "Kaplan"
+   ]
+  },
+  {
+   "name": "המרכז הרפואי יוספטל",
+   "category": "hospital",
+   "aliases": [
+    "יוספטל",
+    "Yoseftal"
+   ]
+  },
+  {
+   "name": "מרכז רפואי הדסה - בית החולים עין כרם",
+   "category": "hospital",
+   "aliases": [
+    "הדסה עין כרם",
+    "Hadassah Ein Kerem"
+   ]
+  },
+  {
+   "name": "מרכז רפואי הדסה - בית החולים הר הצופים",
+   "category": "hospital",
+   "aliases": [
+    "הדסה הר הצופים",
+    "Hadassah Mount Scopus"
+   ]
+  },
+  {
+   "name": "המרכז הרפואי שערי צדק",
+   "category": "hospital",
+   "aliases": [
+    "שערי צדק",
+    "Shaare Zedek"
+   ]
+  },
+  {
+   "name": "בית החולים אוגוסטה ויקטוריה",
+   "category": "hospital",
+   "aliases": [
+    "אוגוסטה ויקטוריה",
+    "Augusta Victoria"
+   ]
+  },
+  {
+   "name": "בית החולים סנט ג'וזף",
+   "category": "hospital",
+   "aliases": [
+    "סנט ג'וזף",
+    "St Joseph"
+   ]
+  },
+  {
+   "name": "בית החולים אל-מקאסד",
+   "category": "hospital",
+   "aliases": [
+    "מקאסד",
+    "Makassed"
+   ]
+  },
+  {
+   "name": "לניאדו - מרכז רפואי צאנז",
+   "category": "hospital",
+   "aliases": [
+    "לניאדו",
+    "צאנז",
+    "Laniado"
+   ]
+  },
+  {
+   "name": "בית החולים האוניברסיטאי אסותא אשדוד",
+   "category": "hospital",
+   "aliases": [
+    "אסותא אשדוד",
+    "Assuta Ashdod"
+   ]
+  },
+  {
+   "name": "מרכז רפואי מעיני הישועה",
+   "category": "hospital",
+   "aliases": [
+    "מעיני הישועה",
+    "Mayanei Hayeshua"
+   ]
+  },
+  {
+   "name": "בית החולים האיטלקי (חיפה)",
+   "category": "hospital",
+   "aliases": [
+    "האיטלקי חיפה"
+   ]
+  },
+  {
+   "name": "בית החולים נצרת (האנגלי)",
+   "category": "hospital",
+   "aliases": [
+    "נצרת האנגלי",
+    "EMMS Nazareth"
+   ]
+  },
+  {
+   "name": "בית החולים המשפחה הקדושה (האיטלקי)",
+   "category": "hospital",
+   "aliases": [
+    "המשפחה הקדושה",
+    "Holy Family"
+   ]
+  },
+  {
+   "name": "בית החולים סן ונסן דה פול (הצרפתי)",
+   "category": "hospital",
+   "aliases": [
+    "סן ונסן",
+    "הצרפתי"
+   ]
+  },
+  {
+   "name": "בית החולים אסותא רמת החייל",
+   "category": "hospital",
+   "aliases": [
+    "אסותא רמת החייל"
+   ]
+  },
+  {
+   "name": "בית החולים אסותא חיפה",
+   "category": "hospital",
+   "aliases": [
+    "אסותא חיפה"
+   ]
+  },
+  {
+   "name": "בית החולים אסותא ראשון לציון",
+   "category": "hospital",
+   "aliases": [
+    "אסותא ראשון לציון"
+   ]
+  },
+  {
+   "name": "בית החולים אסותא באר שבע",
+   "category": "hospital",
+   "aliases": [
+    "אסותא באר שבע"
+   ]
+  },
+  {
+   "name": "המרכז הרפואי אסותא ירושלים",
+   "category": "hospital",
+   "aliases": [
+    "אסותא ירושלים"
+   ]
+  },
+  {
+   "name": "המרכז הרפואי אסותא השלום-תל אביב",
+   "category": "hospital",
+   "aliases": [
+    "אסותא השלום"
+   ]
+  },
+  {
+   "name": "המרכז הרפואי אסותא אשדוד-כלניות",
+   "category": "hospital",
+   "aliases": [
+    "אסותא כלניות"
+   ]
+  },
+  {
+   "name": "המרכז הרפואי אסותא רעננה",
+   "category": "hospital",
+   "aliases": [
+    "אסותא רעננה"
+   ]
+  },
+  {
+   "name": "הרצליה מדיקל סנטר",
+   "category": "hospital",
+   "aliases": [
+    "הרצליה מדיקל",
+    "Herzliya Medical Center"
+   ]
+  },
+  {
+   "name": "בית החולים אלישע",
+   "category": "hospital",
+   "aliases": [
+    "אלישע",
+    "Elisha"
+   ]
+  },
+  {
+   "name": "בית החולים רפאל",
+   "category": "hospital",
+   "aliases": [
+    "רפאל",
+    "Raphael"
+   ]
+  },
+  {
+   "name": "משגב לדך",
+   "category": "hospital",
+   "aliases": [
+    "Misgav Ladach"
+   ]
+  },
+  {
+   "name": "רוזנבלט מעבדה רפואית",
+   "category": "lab",
+   "aliases": [
+    "רוזנבלט",
+    "Rosenblatt"
+   ]
+  },
+  {
+   "name": "צה\"ל - חיל הרפואה",
+   "category": "government",
+   "aliases": [
+    "צה\"ל",
+    "חיל הרפואה",
+    "MediTik"
+   ]
+  },
+  {
+   "name": "משרד הביטחון",
+   "category": "government",
+   "aliases": [
+    "משרד הבטחון"
+   ]
+  },
+  {
+   "name": "מגן דוד אדום",
+   "category": "other",
+   "aliases": [
+    "מד\"א",
+    "MDA"
+   ]
+  },
+  {
+   "name": "הרשות הפלסטינית",
+   "category": "government",
+   "aliases": [
+    "רשות פלסטינאית",
+    "הרשות הפלסטינאית",
+    "רשות פלסטינית"
+   ]
+  },
+  {
+   "name": "המרכז הלאומי לרפואה משפטית",
+   "category": "government",
+   "aliases": [
+    "רפואה משפטית",
+    "אבו כביר"
+   ]
+  }
+ ]
+}
