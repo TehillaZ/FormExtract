@@ -21,7 +21,7 @@ export function FormList({ records, selectedId, onSelect, open, onToggle, filter
 
   return (
     <aside aria-label="רשימת הטפסים" aria-hidden={!open} inert={!open}
-      className="shrink-0 overflow-hidden border-e border-edge bg-surface transition-[width] duration-200"
+      className={`shrink-0 overflow-hidden border-edge bg-surface transition-[width] duration-200 ${open ? 'border-e' : ''}`}   // no border when closed: it would stay on screen as a 1px line
       style={{ width: open ? LIST_WIDTH : 0 }}>
       <div className="flex h-full flex-col gap-2 px-2.5 pt-3" style={{ width: LIST_WIDTH }}>
         <div className="flex items-center gap-1.5">

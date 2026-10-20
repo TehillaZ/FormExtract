@@ -225,7 +225,7 @@ Main tables: `documents` (the uploaded file), `pages`, `records`, `record_commit
 | Styling | Tailwind, with `dir="rtl"` and logical classes (ADR-007) |
 | Data fetching | React Query |
 | Running | Local Docker Compose. Cloud later |
-| Tests | pytest, and the evaluation script |
+| Tests | pytest (backend), Vitest with Testing Library (frontend components), Playwright (real-browser end-to-end), and the evaluation script |
 
 ---
 

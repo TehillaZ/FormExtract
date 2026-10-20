@@ -13,7 +13,8 @@ const STATUS_STYLE: Record<PageStatus['status'], string> = {
 
 function DocumentCard({ initial, onSettled }: { initial: DocumentStatus; onSettled: () => void }) {
   const { data } = useDocument(initial.id)
-  const doc = data ?? initial
+  // the status endpoint does not repeat `duplicate`: that fact comes only from the upload's answer
+  const doc = { ...(data ?? initial), duplicate: initial.duplicate }
   const reprocess = useReprocess()
 
   useEffect(() => { if (doc.done) onSettled() }, [doc.done])   // eslint-disable-line react-hooks/exhaustive-deps

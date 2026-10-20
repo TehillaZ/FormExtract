@@ -7,10 +7,11 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
-      '/api': { target: 'http://localhost:8000', rewrite: (path) => path.replace(/^\/api/, '') },
+      '/api': { target: process.env.API_PROXY_TARGET ?? 'http://localhost:8000', rewrite: (path) => path.replace(/^\/api/, '') },
     },
   },
   test: {
+    include: ['src/**/*.test.{ts,tsx}'],   // e2e/ belongs to Playwright
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: false,

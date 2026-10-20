@@ -8,3 +8,5 @@ node_modules/
 .pytest_cache/
 data/storage/
 frontend/dist/
+frontend/playwright-report/
+frontend/test-results/

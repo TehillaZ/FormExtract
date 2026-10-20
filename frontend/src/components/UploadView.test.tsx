@@ -44,7 +44,7 @@ describe('UploadView', () => {
     const api = installFakeApi()
     const doc = makeDocument('d1', [pageStatus('p1', 1, 'ready', 'r1')], { duplicate: true })
     api.uploadResult = [doc]
-    api.documents.d1 = doc
+    api.documents.d1 = { ...doc, duplicate: false }   // like the real API: only the upload's answer says "duplicate"
     renderWithClient(<UploadView onReview={() => {}} />)
     await upload(pdf())
     expect(await screen.findByText('קובץ זהה כבר הועלה בעבר, לא עובד שוב')).toBeInTheDocument()
