@@ -6,3 +6,5 @@ __pycache__/
 node_modules/
 *.pdf
 .pytest_cache/
+data/storage/
+frontend/dist/

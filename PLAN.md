@@ -402,9 +402,9 @@ Main tables: `documents` (the uploaded file), `pages`, `records`, `record_commit
 - [ ] Template hints for the main senders
 - [~] Confidence calculation (done) and a second call for uncertain fields (not done)
 - [~] Fallback provider on a 429 (implemented and tested with a fake provider; not tried against Groq)
-- [ ] Upload screen
-- [ ] Review table and single-form screen, including attaching and splitting forms
-- [ ] Records screen with filtering
+- [x] Upload screen
+- [~] Review table and single-form screen (done; attaching and splitting forms not yet)
+- [ ] Records screen with filtering (the form list has search and a needs-review filter; date and sender filters and export are not built)
 - [~] Duplicate detection (hash and warnings done; UI not done)
 - [ ] Running the evaluation on the test set
 - [~] README (written), run instructions and summary (approach, limitations, what the lab needs)

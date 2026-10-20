@@ -23,7 +23,9 @@ Work in progress (hackathon). See the checklist in section 14 of the plan.
 | REST API (FastAPI), background processing | not started |
 | Orientation detection (Tesseract) | not started, Tesseract not installed |
 | Provider fallback on 429, template hints, second look at uncertain fields | not started |
-| Frontend (upload, review table, single form, records) | not started |
+| Frontend: upload, review table, single-form review screen (collapsible form list, zoom, lens, expanded view, inline editing) | done, first version |
+| Frontend: records screen with date/sender filters, export | not started |
+| Marking field locations on the image (needs coordinates from the model) | not started |
 
 ## How it works
 
@@ -57,6 +59,18 @@ cp ../.env.example ../.env                          # then fill in GEMINI_API_KE
 ```
 
 Database (PostgreSQL 16): `docker compose up -d db` from the repo root. Tests use in-memory SQLite.
+
+### Run the app
+
+```bash
+# terminal 1: API on :8000 (needs the database above and a vision key in .env)
+cd backend && .venv/Scripts/python -m uvicorn app.api.main:app --port 8000
+
+# terminal 2: UI on :5173 (proxies /api to the API)
+cd frontend && npm install && npm run dev
+```
+
+Open http://localhost:5173, upload forms in the "העלאה" tab, then review them in "טבלה" or "טופס". Frontend checks: `npm test`, `npx tsc -b`, `npm run build`.
 
 ### Evaluation
 

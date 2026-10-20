@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+/* Stone palette from the approved design. Orange means "a person must look"; green means verified. */
+@theme {
+  --font-sans: "Assistant", system-ui, sans-serif;
+  --color-page: #f5f5f6;
+  --color-surface: #ffffff;
+  --color-edge: #e3e4e7;
+  --color-muted: #ecedef;
+  --color-stage: #e9eaec;
+  --color-ink: #23252a;
+  --color-sub: #62666d;
+  --color-faint: #80848b;
+  --color-line: #cfd1d6;
+  --color-accent: #2f6f5e;
+  --color-accent-soft: #e6f1ed;
+  --color-accent-line: #a9cfc2;
+  --color-warn: #e8590c;
+  --color-warn-soft: #fde9db;
+  --color-warn-row: #fef1e8;
+  --color-warn-line: #f2a877;
+  --color-warn-ink: #b8430a;
+  --color-ok-soft: #ddf0e6;
+  --color-ok-ink: #1e7a4c;
+}
+
+html, body, #root { height: 100%; }
+body { margin: 0; background: var(--color-page); color: var(--color-ink); font-family: var(--font-sans); }
+button { font-family: inherit; cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: 0.5; }
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
