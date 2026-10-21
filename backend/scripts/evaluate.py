@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import hashlib
 import sys
 import time
 from pathlib import Path
@@ -23,7 +22,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.config import settings  # noqa: E402
 from app.evaluation import (  # noqa: E402
-    DATA, FIELDS, FieldStats, build_report, format_report, load_split, load_truth, save_report, score_record,
+    DATA, FIELDS, FieldStats, build_report, cache_tag, format_report, load_split, load_truth, prompt_id, save_report,
+    score_record,
 )
 from app.pipeline.barcodes import decode_barcodes  # noqa: E402
 from app.pipeline.extract import build_record  # noqa: E402
@@ -31,7 +31,6 @@ from app.pipeline.orientation import correct_quarter_turn  # noqa: E402
 from app.pipeline.process import extract_oriented  # noqa: E402
 from app.schemas import RawExtraction  # noqa: E402
 from app.vision import get_provider  # noqa: E402
-from app.vision.prompt import SYSTEM_PROMPT, USER_PROMPT  # noqa: E402
 
 
 async def run_page(provider, name: str, limit: asyncio.Semaphore, cache_dir: Path, force: bool, orient: bool):
@@ -84,11 +83,9 @@ def choose_pages(args: argparse.Namespace, truth: dict, cache_dir: Path) -> list
 async def main() -> None:
     args = parse_args()
     truth = load_truth()
-    provider = get_provider(args.provider, args.model)
-    prompt_id = hashlib.sha1((SYSTEM_PROMPT + USER_PROMPT).encode()).hexdigest()[:6]
-    tag = f"{provider.name}-{getattr(provider, 'model', '')}-{prompt_id}".replace("/", "_")
-    if not args.no_orient:
-        tag += "-oriented"
+    # a model named on the command line is pinned: falling back to another model would mix results in one report
+    provider = get_provider(args.provider, args.model, fallback_models=[] if args.model else None)
+    tag = cache_tag(provider.name, getattr(provider, "model", ""), oriented=not args.no_orient)
     cache_dir = DATA / "eval_cache" / tag
     cache_dir.mkdir(parents=True, exist_ok=True)
     pages = choose_pages(args, truth, cache_dir)
@@ -119,9 +116,10 @@ async def main() -> None:
         print("(no report saved)" + ("" if args.no_save else ": a hand-picked page list is not a split"))
     else:   # a whole split (or everything): keep the result for the accuracy screen
         report = build_report(
-            tag=tag, provider=provider.name, model=getattr(provider, "model", ""), prompt_id=prompt_id,
+            tag=tag, provider=provider.name, model=getattr(provider, "model", ""), prompt_id=prompt_id(),
             oriented=not args.no_orient, checksum_mode=settings.id_checksum_mode, split=args.split or "all",
-            pages_scored=len(pages) - len(failed), pages_failed=len(failed), stats=stats)
+            pages_scored=len(pages) - len(failed), pages_failed=len(failed), stats=stats,
+            pages=[p for p in pages if p not in {name for name, _ in failed}])
         print("report saved:", save_report(report))
     for page, error in failed:
         print("FAILED", page, error)

@@ -38,6 +38,16 @@ test('a report can be taken out of the comparison', async ({ page }) => {
   await expect(rowOf(page, 'ת"ז')).not.toContainText('+25')
 })
 
+test('refuses to compare a report that covers other pages', async ({ page }) => {
+  const picker = page.getByRole('group', { name: /השוואה/ })
+  await expect(page.getByTestId('different-pages')).toHaveCount(0)          // model-a and model-b share all 8 pages
+
+  await picker.getByRole('checkbox', { name: /model-c/ }).check()           // model-c covers only 4 of them
+  await expect(page.getByTestId('different-pages')).toContainText('נמדדו על עמודים שונים (4 עמודים משותפים)')
+  await expect(rowOf(page, 'ת"ז')).not.toContainText('+25')                 // no difference is shown
+  await expect(page.getByRole('columnheader', { name: /model-c/ })).toBeVisible()
+})
+
 test('works without any records', async ({ page }) => {
   await expect(page.getByRole('banner')).toContainText('0 טפסים')
   await expect(page.getByRole('table')).toBeVisible()

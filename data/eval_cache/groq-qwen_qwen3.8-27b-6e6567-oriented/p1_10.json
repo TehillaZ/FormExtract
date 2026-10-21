@@ -1,0 +1,68 @@
+{
+ "template": "maccabi_lab",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "יוסי",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "last_name": {
+  "value": "יוסי",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "043322101",
+   "source": "handwritten",
+   "highlighted": false
+  },
+  {
+   "value": "043322101",
+   "source": "handwritten",
+   "highlighted": false
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "260630224",
+   "source": "printed",
+   "highlighted": true
+  }
+ ],
+ "received_date": {
+  "value": "18/06/2026",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": "18/06/2026",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "sender": {
+  "value": "מכבי",
+  "source": "sticker",
+  "highlighted": true
+ },
+ "other_senders": [],
+ "commitment_numbers": [
+  {
+   "value": "001223344",
+   "source": "handwritten",
+   "highlighted": true
+  },
+  {
+   "value": "001223344",
+   "source": "handwritten",
+   "highlighted": true
+  }
+ ]
+}

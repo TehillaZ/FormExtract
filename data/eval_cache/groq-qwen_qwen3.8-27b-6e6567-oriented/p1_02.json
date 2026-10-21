@@ -1,0 +1,58 @@
+{
+ "template": "other",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "אסתר",
+  "source": "printed",
+  "highlighted": false
+ },
+ "last_name": {
+  "value": "אזרח",
+  "source": "printed",
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "0002233",
+   "source": "handwritten",
+   "highlighted": false
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "30530668",
+   "source": "printed",
+   "highlighted": false
+  }
+ ],
+ "received_date": {
+  "value": "16.06.2026",
+  "source": "printed",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "sender": {
+  "value": "קופה מאוחדת תל אביב",
+  "source": "printed",
+  "highlighted": true
+ },
+ "other_senders": [],
+ "commitment_numbers": [
+  {
+   "value": "730542025",
+   "source": "printed",
+   "highlighted": true
+  }
+ ]
+}

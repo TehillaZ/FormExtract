@@ -1,0 +1,58 @@
+{
+ "template": "other",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "עומר",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "last_name": {
+  "value": "בן דוד",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "11223344",
+   "source": "handwritten",
+   "highlighted": true
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "947984",
+   "source": "sticker",
+   "highlighted": true
+  }
+ ],
+ "received_date": {
+  "value": "03-08-2026",
+  "source": "stamp",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": "03-08-2026",
+  "source": "stamp",
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "sender": {
+  "value": "המרכז הרפואי שמיר",
+  "source": "printed",
+  "highlighted": true
+ },
+ "other_senders": [],
+ "commitment_numbers": [
+  {
+   "value": "2657",
+   "source": "sticker",
+   "highlighted": true
+  }
+ ]
+}

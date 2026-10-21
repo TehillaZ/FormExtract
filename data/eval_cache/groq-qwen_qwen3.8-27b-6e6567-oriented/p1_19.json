@@ -1,0 +1,63 @@
+{
+ "template": "rambam_virology",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "אבי",
+  "source": "printed",
+  "highlighted": false
+ },
+ "last_name": {
+  "value": "קלי",
+  "source": "printed",
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "11223344",
+   "source": "handwritten",
+   "highlighted": true
+  },
+  {
+   "value": "11223344",
+   "source": "printed",
+   "highlighted": false
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "944000361",
+   "source": "printed",
+   "highlighted": false
+  }
+ ],
+ "received_date": {
+  "value": "13.8.26",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": "13.8.26",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "sender": {
+  "value": "אפרת ברנן",
+  "source": "printed",
+  "highlighted": false
+ },
+ "other_senders": [],
+ "commitment_numbers": [
+  {
+   "value": "000361",
+   "source": "sticker",
+   "highlighted": true
+  }
+ ]
+}

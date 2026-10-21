@@ -149,3 +149,53 @@ describe('AccuracyView: comparing reports', () => {
     expect(screen.getByText(/בגדר רעש/)).toBeInTheDocument()
   })
 })
+
+
+describe('AccuracyView: reports that cover different pages', () => {
+  const pagesOf = (n: number) => Array.from({ length: n }, (_, i) => `p${i}`)
+  const wide = () => makeReport({ pages: pagesOf(20), pages_scored: 20 })
+  const narrow = () => makeReport({
+    tag: 'gemini-model-b-def456', model: 'model-b', created_at: '2026-10-19T10:00:00Z', pages: pagesOf(7), pages_scored: 7,
+    fields: { ...makeReport().fields, id_number: result(7, 6, 1, 0) },
+  })
+
+  it('refuses to show a difference between runs on different pages, and says why', async () => {
+    await open([wide(), narrow()])
+    const warning = screen.getByTestId('different-pages')
+    expect(warning).toHaveTextContent('נמדדו על עמודים שונים (7 עמודים משותפים)')
+    expect(warning).toHaveTextContent('python scripts/compare.py')
+    expect(rowOf('ת"ז')).not.toHaveTextContent(/[+−]\d/)          // no change figure at all
+    expect(screen.queryByText(/בגדר רעש/)).not.toBeInTheDocument()
+  })
+
+  it('still shows each report on its own numbers, with its own page count', async () => {
+    await open([wide(), narrow()])
+    expect(rowOf('ת"ז')).toHaveTextContent('35%')
+    expect(rowOf('ת"ז')).toHaveTextContent('86%')
+    expect(screen.getAllByText(/7 עמודים/).length).toBeGreaterThan(0)
+  })
+
+  it('does not warn when the reports cover the same pages', async () => {
+    await open([reportA(), reportB()])
+    expect(screen.queryByTestId('different-pages')).not.toBeInTheDocument()
+    expect(rowOf('ת"ז')).toHaveTextContent('+20')
+  })
+
+  it('says it cannot tell when an older report does not list its pages', async () => {
+    await open([wide(), makeReport({ tag: 'old', model: 'old-model', created_at: '2026-10-19T10:00:00Z', pages: [] })])
+    expect(screen.getByTestId('different-pages')).toHaveTextContent('לא ידוע אילו עמודים נבדקו')
+    expect(rowOf('ת"ז')).not.toHaveTextContent(/[+−]\d/)
+  })
+
+  it('a single report is never called unfair, even if it lists no pages', async () => {
+    await open([makeReport({ pages: [] })])
+    expect(screen.queryByTestId('different-pages')).not.toBeInTheDocument()
+  })
+
+  it('the warning goes away when the odd report is taken out of the comparison', async () => {
+    const { user } = await open([wide(), narrow()])
+    expect(screen.getByTestId('different-pages')).toBeInTheDocument()
+    await user.click(within(screen.getByRole('group', { name: /השוואה/ })).getByRole('checkbox', { name: /model-b/ }))
+    expect(screen.queryByTestId('different-pages')).not.toBeInTheDocument()
+  })
+})

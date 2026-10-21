@@ -1,0 +1,58 @@
+{
+ "template": "clalit_form17",
+ "is_continuation": false,
+ "text_upside_down": true,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "אסא",
+  "source": "printed",
+  "highlighted": false
+ },
+ "last_name": {
+  "value": "גסא",
+  "source": "printed",
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "12101598",
+   "source": "printed",
+   "highlighted": false
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "945740",
+   "source": "sticker",
+   "highlighted": true
+  }
+ ],
+ "received_date": {
+  "value": "28.07.26",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": "28.07.26",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "sender": {
+  "value": "הכלל יפה",
+  "source": "sticker",
+  "highlighted": true
+ },
+ "other_senders": [],
+ "commitment_numbers": [
+  {
+   "value": "264800879",
+   "source": "sticker",
+   "highlighted": true
+  }
+ ]
+}

@@ -1,0 +1,58 @@
+{
+ "template": "clalit_form17",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "רועי",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "last_name": {
+  "value": "סגל",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "02233044",
+   "source": "handwritten",
+   "highlighted": true
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "936123",
+   "source": "sticker",
+   "highlighted": true
+  }
+ ],
+ "received_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "sender": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "other_senders": [],
+ "commitment_numbers": [
+  {
+   "value": "436703",
+   "source": "sticker",
+   "highlighted": true
+  }
+ ]
+}

@@ -1,0 +1,73 @@
+{
+ "template": "maccabi_lab",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "גפן",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "last_name": {
+  "value": "נימני",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "03115877",
+   "source": "printed",
+   "highlighted": false
+  },
+  {
+   "value": "03115877",
+   "source": "printed",
+   "highlighted": false
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "937188",
+   "source": "handwritten",
+   "highlighted": true
+  },
+  {
+   "value": "937188",
+   "source": "handwritten",
+   "highlighted": true
+  }
+ ],
+ "received_date": {
+  "value": "11/12/2025",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": "11/12/2025",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "sender": {
+  "value": "מכבי שירותי בריאות תא",
+  "source": "printed",
+  "highlighted": false
+ },
+ "other_senders": [],
+ "commitment_numbers": [
+  {
+   "value": "251120160",
+   "source": "printed",
+   "highlighted": true
+  },
+  {
+   "value": "251120160",
+   "source": "printed",
+   "highlighted": true
+  }
+ ]
+}

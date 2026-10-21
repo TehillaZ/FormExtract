@@ -1,0 +1,52 @@
+{
+ "template": "other",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "אורי",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "last_name": {
+  "value": "גרוס",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "0293344",
+   "source": "handwritten",
+   "highlighted": true
+  }
+ ],
+ "central_numbers": [],
+ "received_date": {
+  "value": "26/12/2024",
+  "source": "printed",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "sender": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "other_senders": [],
+ "commitment_numbers": [
+  {
+   "value": "947769",
+   "source": "sticker",
+   "highlighted": true
+  }
+ ]
+}

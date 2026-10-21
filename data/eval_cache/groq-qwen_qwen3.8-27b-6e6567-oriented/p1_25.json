@@ -1,0 +1,62 @@
+{
+ "template": "hospital_screenshot",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "מיור",
+  "source": "printed",
+  "highlighted": false
+ },
+ "last_name": {
+  "value": "מקרה",
+  "source": "printed",
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "11223344",
+   "source": "handwritten",
+   "highlighted": true
+  }
+ ],
+ "central_numbers": [],
+ "received_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "sender": {
+  "value": "משרד הבטחון",
+  "source": "printed",
+  "highlighted": true
+ },
+ "other_senders": [],
+ "commitment_numbers": [
+  {
+   "value": "260005102632",
+   "source": "printed",
+   "highlighted": true
+  },
+  {
+   "value": "260005102611",
+   "source": "printed",
+   "highlighted": true
+  },
+  {
+   "value": "260005102644",
+   "source": "printed",
+   "highlighted": true
+  }
+ ]
+}

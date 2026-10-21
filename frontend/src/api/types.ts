@@ -77,6 +77,7 @@ export interface EvaluationReport {
   created_at: string
   pages_scored: number
   pages_failed: number
+  pages: string[]     // which pages were scored; empty for reports written before this was recorded
   fields: Record<string, FieldResult>
 }
 

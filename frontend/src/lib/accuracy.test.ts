@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { makeReport, result } from '../test/factories'
-import { accuracy, deltaPoints, errors, fieldOrder, flaggedRate, percent, reportTitle, splitSize, totalSilentErrors } from './accuracy'
+import {
+  accuracy, deltaPoints, errors, fieldOrder, flaggedRate, pageOverlap, percent, reportTitle, splitSize, totalSilentErrors,
+} from './accuracy'
 
 describe('field results', () => {
   it('computes accuracy, flag rate and errors from the counts', () => {
@@ -61,5 +63,34 @@ describe('splitSize and fieldOrder', () => {
     const extra = makeReport({ fields: { ...makeReport().fields, first_name: result(20, 1, 1, 0) } })
     expect(fieldOrder([extra]).slice(-1)).toEqual(['first_name'])
     expect(fieldOrder([extra])[0]).toBe('id_number')
+  })
+})
+
+describe('pageOverlap: is a comparison fair?', () => {
+  const on = (...pages: string[]) => makeReport({ pages, pages_scored: pages.length })
+
+  it('is fair when every report was measured on exactly the same pages, in any order', () => {
+    expect(pageOverlap([on('p1', 'p2', 'p3'), on('p3', 'p1', 'p2')])).toEqual({ same: true, shared: 3, unknown: false })
+  })
+
+  it('is not fair when one report covers more pages, and says how many they share', () => {
+    expect(pageOverlap([on('p1', 'p2', 'p3', 'p4'), on('p1', 'p2')])).toEqual({ same: false, shared: 2, unknown: false })
+  })
+
+  it('is not fair when the pages differ even if there are as many of them', () => {
+    expect(pageOverlap([on('p1', 'p2'), on('p2', 'p3')])).toEqual({ same: false, shared: 1, unknown: false })
+  })
+
+  it('cannot be judged when a report does not say which pages it covered (an older report)', () => {
+    expect(pageOverlap([on('p1', 'p2'), on()])).toMatchObject({ same: false, unknown: true })
+  })
+
+  it('has nothing to say about no reports, and one report is trivially the same as itself', () => {
+    expect(pageOverlap([])).toEqual({ same: true, shared: 0, unknown: false })
+    expect(pageOverlap([on('p1', 'p2')])).toEqual({ same: true, shared: 2, unknown: false })
+  })
+
+  it('works across three reports: only pages in all of them count as shared', () => {
+    expect(pageOverlap([on('p1', 'p2', 'p3'), on('p1', 'p2'), on('p2', 'p3')]).shared).toBe(1)
   })
 })

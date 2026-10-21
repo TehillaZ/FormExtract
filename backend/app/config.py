@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-3.5-flash"
     # tried in order when the model before it is out of free-tier quota (quotas are per model)
     gemini_fallback_models: list[str] = ["gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-2.5-flash"]
-    groq_model: str = "meta-llama/llama-4-scout-17b-16e-instruct"
+    groq_model: str = "qwen/qwen3.8-27b"   # the only Groq model that reads images (llama-4-scout was withdrawn)
     vision_provider: Literal["gemini", "groq"] = "gemini"
     vision_fallback_provider: Literal["gemini", "groq"] = "groq"
     id_checksum_mode: Literal["strict", "lenient"] = "strict"

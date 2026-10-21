@@ -1,0 +1,57 @@
+{
+ "template": "clalit_form17",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "נגיפים",
+  "source": "printed",
+  "highlighted": false
+ },
+ "last_name": {
+  "value": "נקלט",
+  "source": "printed",
+  "highlighted": false
+ },
+ "id_numbers": [],
+ "central_numbers": [
+  {
+   "value": "939404",
+   "source": "sticker",
+   "highlighted": false
+  }
+ ],
+ "received_date": {
+  "value": "18-06-2026",
+  "source": "stamp",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": "18-06-2026",
+  "source": "stamp",
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "sender": {
+  "value": "מרכז אייזל שרון, 3, אזור יתודה",
+  "source": "printed",
+  "highlighted": false
+ },
+ "other_senders": [],
+ "commitment_numbers": [
+  {
+   "value": "990012538",
+   "source": "printed",
+   "highlighted": false
+  },
+  {
+   "value": "001223344",
+   "source": "handwritten",
+   "highlighted": false
+  }
+ ]
+}

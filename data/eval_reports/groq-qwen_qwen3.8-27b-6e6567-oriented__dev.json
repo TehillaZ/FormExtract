@@ -1,0 +1,77 @@
+{
+  "tag": "groq-qwen_qwen3.8-27b-6e6567-oriented",
+  "provider": "groq",
+  "model": "qwen/qwen3.8-27b",
+  "prompt_id": "6e6567",
+  "oriented": true,
+  "checksum_mode": "strict",
+  "split": "dev",
+  "created_at": "2026-10-21T08:20:19Z",
+  "pages_scored": 31,
+  "pages_failed": 0,
+  "pages": [
+    "p1_01",
+    "p1_02",
+    "p1_03",
+    "p1_04",
+    "p1_05",
+    "p1_07",
+    "p1_08",
+    "p1_09",
+    "p1_10",
+    "p1_11",
+    "p1_12",
+    "p1_13",
+    "p1_14",
+    "p1_16",
+    "p1_17",
+    "p1_18",
+    "p1_19",
+    "p1_20",
+    "p1_21",
+    "p1_22",
+    "p1_23",
+    "p1_24",
+    "p1_25",
+    "p1_26",
+    "p2_01",
+    "p2_03",
+    "p2_04",
+    "p2_05",
+    "p2_06",
+    "p2_07",
+    "p2_08"
+  ],
+  "fields": {
+    "id_number": {
+      "pages": 31,
+      "correct": 6,
+      "flagged": 23,
+      "silent_errors": 2
+    },
+    "central_numbers": {
+      "pages": 31,
+      "correct": 18,
+      "flagged": 15,
+      "silent_errors": 1
+    },
+    "received_date": {
+      "pages": 31,
+      "correct": 14,
+      "flagged": 30,
+      "silent_errors": 1
+    },
+    "sender": {
+      "pages": 31,
+      "correct": 16,
+      "flagged": 16,
+      "silent_errors": 0
+    },
+    "commitment_numbers": {
+      "pages": 31,
+      "correct": 18,
+      "flagged": 26,
+      "silent_errors": 2
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+ "template": "shamir_commitment",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "פנימית",
+  "source": "printed",
+  "highlighted": false
+ },
+ "last_name": {
+  "value": "רונית",
+  "source": "printed",
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "050519132",
+   "source": "printed",
+   "highlighted": false
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "947768",
+   "source": "sticker",
+   "highlighted": true
+  }
+ ],
+ "received_date": {
+  "value": "27/08/2019",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": "27/08/2019",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "sender": {
+  "value": "המרכז הרפואי שמיר",
+  "source": "printed",
+  "highlighted": true
+ },
+ "other_senders": [],
+ "commitment_numbers": [
+  {
+   "value": "2646",
+   "source": "sticker",
+   "highlighted": true
+  }
+ ]
+}

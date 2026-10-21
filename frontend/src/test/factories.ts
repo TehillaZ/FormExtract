@@ -33,6 +33,7 @@ export function makeReport(over: Partial<EvaluationReport> = {}): EvaluationRepo
   return {
     tag: 'gemini-model-a-abc123', provider: 'gemini', model: 'model-a', prompt_id: 'abc123', oriented: true,
     checksum_mode: 'strict', split: 'dev', created_at: '2026-10-20T22:00:00Z', pages_scored: 20, pages_failed: 0,
+    pages: Array.from({ length: 20 }, (_, i) => `p${i}`),
     fields: {
       id_number: result(20, 7, 11, 4), central_numbers: result(20, 14, 8, 0), received_date: result(20, 12, 19, 0),
       sender: result(20, 14, 7, 0), commitment_numbers: result(20, 15, 17, 1),

@@ -1,0 +1,52 @@
+{
+ "template": "rambam_commitment",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "last_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "id_numbers": [],
+ "central_numbers": [
+  {
+   "value": "944000352",
+   "source": "sticker",
+   "highlighted": false
+  }
+ ],
+ "received_date": {
+  "value": "06/08/2026",
+  "source": "stamp",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": "06/08/2026",
+  "source": "stamp",
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": "06/08/2026",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "sender": {
+  "value": "אפרת בראון",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "other_senders": [],
+ "commitment_numbers": [
+  {
+   "value": "944000352",
+   "source": "printed",
+   "highlighted": false
+  }
+ ]
+}

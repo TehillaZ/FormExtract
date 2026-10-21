@@ -5,6 +5,7 @@ the errors that were NOT flagged, because those reach the database unnoticed.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -16,6 +17,7 @@ from pydantic import BaseModel, ValidationError
 
 from app.schemas import CommitmentRecord
 from app.validation.senders import match_sender
+from app.vision.prompt import SYSTEM_PROMPT, USER_PROMPT
 
 DATA = Path(__file__).resolve().parents[2] / "data"
 REPORTS_DIR = DATA / "eval_reports"
@@ -113,15 +115,17 @@ class EvaluationReport(BaseModel):
     created_at: datetime
     pages_scored: int
     pages_failed: int = 0
+    pages: list[str] = []                     # which pages were scored; empty in reports written before this existed
     fields: dict[str, FieldResult]
 
 
 def build_report(*, tag: str, provider: str, model: str, prompt_id: str, oriented: bool, checksum_mode: str,
-                 split: str, pages_scored: int, pages_failed: int, stats: dict[str, FieldStats]) -> EvaluationReport:
+                 split: str, pages_scored: int, pages_failed: int, stats: dict[str, FieldStats],
+                 pages: list[str] | None = None) -> EvaluationReport:
     return EvaluationReport(
         tag=tag, provider=provider, model=model, prompt_id=prompt_id, oriented=oriented, checksum_mode=checksum_mode,
         split=split, created_at=datetime.now(UTC).replace(microsecond=0), pages_scored=pages_scored,
-        pages_failed=pages_failed,
+        pages_failed=pages_failed, pages=sorted(pages or []),
         fields={name: FieldResult(pages=s.pages, correct=s.correct, flagged=s.flagged, silent_errors=s.silent_errors)
                 for name, s in stats.items()})
 
@@ -170,3 +174,69 @@ class EvaluationStore:
             return Coverage(pages, pages, 0)
         split = json.loads(self.split_file.read_text(encoding="utf-8"))
         return Coverage(pages, len(split.get("dev", [])), len(split.get("test", [])))
+
+
+# ---- cache names: which model, which prompt, with or without orientation correction -------------------------
+
+def prompt_id() -> str:
+    """A short fingerprint of the extraction prompt: a new prompt starts a fresh cache."""
+    return hashlib.sha1((SYSTEM_PROMPT + USER_PROMPT).encode()).hexdigest()[:6]
+
+
+def cache_tag(provider: str, model: str, oriented: bool) -> str:
+    """The name of a run's cache folder and report: provider-model-prompt, plus -oriented when the page is turned first."""
+    tag = f"{provider}-{model}-{prompt_id()}".replace("/", "_")
+    return tag + "-oriented" if oriented else tag
+
+
+# ---- the same pages, two models ------------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class PairedField:
+    """One field, over the pages both runs scored: who was right where. The four counts add up to `pages`."""
+    pages: int
+    both_right: int
+    only_a: int
+    only_b: int
+    both_wrong: int
+    silent_a: int       # wrong and not flagged, in run A
+    silent_b: int
+
+    @property
+    def correct_a(self) -> int:
+        return self.both_right + self.only_a
+
+    @property
+    def correct_b(self) -> int:
+        return self.both_right + self.only_b
+
+
+def compare_paired(a: dict[str, dict[str, Outcome]], b: dict[str, dict[str, Outcome]]) -> dict[str, PairedField]:
+    """Compare two runs page by page. `a` and `b` map page -> field -> (correct, flagged); only pages both
+    scored count, so a model that scored fewer pages is never compared against pages it did not see."""
+    shared = sorted(set(a) & set(b))
+    fields = sorted({f for page in shared for f in a[page]} & {f for page in shared for f in b[page]},
+                    key=lambda f: FIELDS.index(f) if f in FIELDS else len(FIELDS))
+    out: dict[str, PairedField] = {}
+    for field in fields:
+        ok_a = [a[p][field][0] for p in shared]
+        ok_b = [b[p][field][0] for p in shared]
+        out[field] = PairedField(
+            pages=len(shared),
+            both_right=sum(x and y for x, y in zip(ok_a, ok_b, strict=True)),
+            only_a=sum(x and not y for x, y in zip(ok_a, ok_b, strict=True)),
+            only_b=sum(y and not x for x, y in zip(ok_a, ok_b, strict=True)),
+            both_wrong=sum(not x and not y for x, y in zip(ok_a, ok_b, strict=True)),
+            silent_a=sum(not a[p][field][0] and not a[p][field][1] for p in shared),
+            silent_b=sum(not b[p][field][0] and not b[p][field][1] for p in shared))
+    return out
+
+
+def format_paired(paired: dict[str, PairedField], name_a: str, name_b: str) -> str:
+    pages = next(iter(paired.values())).pages if paired else 0
+    head = f"{'field':<20}{name_a[:18]:>20}{name_b[:18]:>20}{'both':>6}{'only A':>8}{'only B':>8}{'neither':>9}   silent A/B"
+    lines = [f"{pages} pages scored by both", head]
+    for field, p in paired.items():
+        acc_a, acc_b = f"{p.correct_a}/{p.pages} ({p.correct_a / p.pages:.0%})", f"{p.correct_b}/{p.pages} ({p.correct_b / p.pages:.0%})"
+        lines.append(f"{field:<20}{acc_a:>20}{acc_b:>20}{p.both_right:>6}{p.only_a:>8}{p.only_b:>8}{p.both_wrong:>9}   {p.silent_a} / {p.silent_b}")
+    return "\n".join(lines)

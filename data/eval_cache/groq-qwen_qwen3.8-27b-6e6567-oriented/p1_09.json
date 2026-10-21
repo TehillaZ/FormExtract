@@ -1,0 +1,58 @@
+{
+ "template": "maccabi_lab",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "last_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "04-6161999355",
+   "source": "printed",
+   "highlighted": false
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "606",
+   "source": "printed",
+   "highlighted": true
+  }
+ ],
+ "received_date": {
+  "value": "01-06-2025",
+  "source": "stamp",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": "01-06-2025",
+  "source": "stamp",
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "sender": {
+  "value": "מכבי",
+  "source": "printed",
+  "highlighted": true
+ },
+ "other_senders": [],
+ "commitment_numbers": [
+  {
+   "value": "50364186",
+   "source": "printed",
+   "highlighted": true
+  }
+ ]
+}

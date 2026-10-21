@@ -1,0 +1,63 @@
+{
+ "template": "barzilai_commitment",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "PHILIPPE",
+  "source": "printed",
+  "highlighted": false
+ },
+ "last_name": {
+  "value": "שגב החומר",
+  "source": "printed",
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "053-2458651",
+   "source": "printed",
+   "highlighted": false
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "945992",
+   "source": "sticker",
+   "highlighted": false
+  }
+ ],
+ "received_date": {
+  "value": "12/08/26",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": "13.8.26",
+  "source": "sticker",
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": "12/08/26",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "sender": {
+  "value": "מרכז רפואה ברזילי",
+  "source": "printed",
+  "highlighted": false
+ },
+ "other_senders": [],
+ "commitment_numbers": [
+  {
+   "value": "11233361",
+   "source": "printed",
+   "highlighted": true
+  },
+  {
+   "value": "11786577",
+   "source": "printed",
+   "highlighted": false
+  }
+ ]
+}

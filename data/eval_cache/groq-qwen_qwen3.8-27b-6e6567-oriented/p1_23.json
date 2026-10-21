@@ -1,0 +1,52 @@
+{
+ "template": "other",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "last_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "id_numbers": [],
+ "central_numbers": [
+  {
+   "value": "947682",
+   "source": "sticker",
+   "highlighted": false
+  }
+ ],
+ "received_date": {
+  "value": "26.8.26",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": "26.8.26",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "sender": {
+  "value": "המרכז הרפואי ביה\"ח \"שמואל\" מסוף לביה\"ס לרפואה אוניברסיטת ת\"א",
+  "source": "printed",
+  "highlighted": true
+ },
+ "other_senders": [],
+ "commitment_numbers": [
+  {
+   "value": "100223349",
+   "source": "handwritten",
+   "highlighted": false
+  }
+ ]
+}

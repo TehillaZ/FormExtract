@@ -120,11 +120,19 @@ _reports_dir = _workdir / "reports"
 for _model, _prompt, _id_stats, _day in (("model-a", "abc123", (8, 3, 5, 2), 20), ("model-b", "def456", (8, 5, 4, 0), 19)):
     _report = build_report(
         tag=f"gemini-{_model}-{_prompt}", provider="gemini", model=_model, prompt_id=_prompt, oriented=True,
-        checksum_mode="strict", split="dev", pages_scored=8, pages_failed=0,
+        checksum_mode="strict", split="dev", pages_scored=8, pages_failed=0, pages=[f"p{i}" for i in range(8)],
         stats=_stats(id_number=_id_stats, central_numbers=(8, 6, 3, 0), received_date=(8, 4, 7, 0),
                      sender=(8, 6, 2, 0), commitment_numbers=(8, 7, 3, 1)))
     _report.created_at = datetime(2026, 10, _day, 12, 0, tzinfo=UTC)   # fixed, so model-a is always the newest
     save_report(_report, _reports_dir)
+# a third report on only four of those pages: comparing it with the others would not be fair
+_short = build_report(
+    tag="gemini-model-c-aaa111", provider="gemini", model="model-c", prompt_id="aaa111", oriented=True,
+    checksum_mode="strict", split="dev", pages_scored=4, pages_failed=0, pages=[f"p{i}" for i in range(4)],
+    stats=_stats(id_number=(4, 4, 0, 0), central_numbers=(4, 3, 1, 0), received_date=(4, 2, 3, 0),
+                 sender=(4, 4, 0, 0), commitment_numbers=(4, 3, 1, 0)))
+_short.created_at = datetime(2026, 10, 18, 12, 0, tzinfo=UTC)
+save_report(_short, _reports_dir)
 (_workdir / "truth.jsonl").write_text("\n".join(json.dumps({"page": f"p{i}"}) for i in range(10)), encoding="utf-8")
 (_workdir / "split.json").write_text(json.dumps({"dev": [f"p{i}" for i in range(8)], "test": ["p8", "p9"]}), encoding="utf-8")
 app.dependency_overrides[get_evaluation_store] = lambda: EvaluationStore(

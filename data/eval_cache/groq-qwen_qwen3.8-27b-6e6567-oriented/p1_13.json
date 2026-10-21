@@ -1,0 +1,63 @@
+{
+ "template": "szmc_commitment",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "אסתר",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "last_name": {
+  "value": "גולן",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "047224517",
+   "source": "handwritten",
+   "highlighted": false
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "947674",
+   "source": "sticker",
+   "highlighted": true
+  }
+ ],
+ "received_date": {
+  "value": "24/08/2026",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": "24/08/2026",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "sender": {
+  "value": "אשור הנהלה",
+  "source": "printed",
+  "highlighted": false
+ },
+ "other_senders": [],
+ "commitment_numbers": [
+  {
+   "value": "1223344",
+   "source": "handwritten",
+   "highlighted": true
+  },
+  {
+   "value": "251493",
+   "source": "printed",
+   "highlighted": true
+  }
+ ]
+}

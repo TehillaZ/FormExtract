@@ -112,3 +112,19 @@ class TestEndpoint:
     def test_no_reports_is_a_normal_answer(self, client, tmp_path):
         self.serve(EvaluationStore(tmp_path / "none", tmp_path / "t", tmp_path / "s"))
         assert client.get("/evaluation").json() == {"reports": [], "pages": 0, "dev_pages": 0, "test_pages": 0}
+
+
+class TestPagesCovered:
+    def test_a_report_records_which_pages_it_scored_sorted(self):
+        r = report(pages=["p3", "p1", "p2"], pages_scored=3)
+        assert r.pages == ["p1", "p2", "p3"]
+
+    def test_pages_survive_saving_and_loading(self, tmp_path):
+        save_report(report(pages=["p1", "p2"], pages_scored=2), tmp_path)
+        assert load_reports(tmp_path)[0].pages == ["p1", "p2"]
+
+    def test_a_report_written_before_pages_were_recorded_still_loads_with_none_listed(self, tmp_path):
+        old = json.loads(report().model_dump_json())
+        del old["pages"]
+        (tmp_path / "old.json").write_text(json.dumps(old), encoding="utf-8")
+        assert load_reports(tmp_path)[0].pages == []

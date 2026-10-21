@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useEvaluation } from '../api/hooks'
 import type { EvaluationReport } from '../api/types'
 import {
-  FIELD_LABELS, accuracy, deltaPoints, errors, fieldOrder, flaggedRate, percent, reportTitle, splitSize, totalSilentErrors,
+  FIELD_LABELS, accuracy, deltaPoints, errors, fieldOrder, flaggedRate, pageOverlap, percent, reportTitle, splitSize,
+  totalSilentErrors,
 } from '../lib/accuracy'
 
 const MAX_COMPARED = 3
@@ -43,6 +44,8 @@ export function AccuracyView() {
   const { reports } = data
   const selectedKeys = chosen ?? reports.slice(0, 2).map(keyOf)
   const selected = reports.filter((r) => selectedKeys.includes(keyOf(r)))
+  const overlap = pageOverlap(selected)
+  const comparable = selected.length < 2 || overlap.same
   const toggle = (key: string) =>
     setChosen(selectedKeys.includes(key) ? selectedKeys.filter((k) => k !== key) : [...selectedKeys, key].slice(-MAX_COMPARED))
 
@@ -80,6 +83,15 @@ export function AccuracyView() {
             })}
           </fieldset>
 
+          {selected.length > 1 && !comparable && (
+            <div role="alert" data-testid="different-pages" className="rounded-xl border border-warn-line bg-warn-soft px-4 py-3 text-[13px] font-semibold text-warn-ink">
+              {overlap.unknown
+                ? 'לא ידוע אילו עמודים נבדקו באחד הדוחות (דוח ישן), ולכן לא מוצג הפרש ביניהם.'
+                : `הדוחות שנבחרו נמדדו על עמודים שונים (${overlap.shared} עמודים משותפים), ולכן הפרש הדיוק ביניהם אינו הוגן ואינו מוצג.`}
+              {' '}להשוואה על אותם עמודים בדיוק: <code dir="ltr" className="font-normal">python scripts/compare.py --a provider:model --b provider:model --split dev</code>
+            </div>
+          )}
+
           {selected.length === 0 ? (
             <div className="text-sub">בחרי דוח אחד או יותר להצגה.</div>
           ) : (
@@ -116,7 +128,7 @@ export function AccuracyView() {
                           <td key={`${keyOf(r)}-a`} className="border-s border-edge px-3 py-3" data-cell="accuracy">
                             <div className="flex items-center gap-2">
                               <span className="font-semibold">{percent(accuracy(f))}</span>
-                              {i > 0 && base && <Delta points={deltaPoints(base, f)} />}
+                              {i > 0 && base && comparable && <Delta points={deltaPoints(base, f)} />}
                             </div>
                             <div className="mt-1 h-1.5 w-full overflow-hidden rounded bg-muted" aria-hidden="true">
                               <div className="h-full bg-accent" style={{ width: percent(accuracy(f)) }} />
@@ -145,7 +157,7 @@ export function AccuracyView() {
               </table>
             </div>
           )}
-          {selected.length > 1 && (
+          {selected.length > 1 && comparable && (
             <p className="m-0 text-xs text-faint">
               השינוי ליד הדיוק הוא בנקודות אחוז ביחס לדוח הראשון בטבלה. עם עשרות עמודים בלבד, הפרשים קטנים הם בגדר רעש.
             </p>

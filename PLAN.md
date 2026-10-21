@@ -267,7 +267,25 @@ What changed these numbers, in order: a prompt that forbids putting central numb
 
 Orientation: on 2 sideways pages with `gemini-3.5-flash` (a third did not finish before the quota ran out), `p1_14` (needs a flip) went from no sender, central number or date to all three right; `p1_03` still misreads handwritten digits (flagged). Two pages is not a measurement. The detector itself separated all 11 sideways samples from the 37 upright ones, but its threshold was chosen on those same pages, so that is not an independent test.
 
-Not yet measured: the test set, other Gemini models, Groq, run-to-run variation at temperature 0, and a before/after comparison of orientation correction on all 11 sideways pages (blocked by the daily quota).
+### 10.2 Gemini against Groq, on the same pages (2026-10-21)
+
+`scripts/compare.py` scores two runs on exactly the pages both scored. The comparison that has enough pages: **Gemini 2.5 Flash** (read without orientation correction) against **Groq `qwen/qwen3.8-27b`** (with it), on the **16 upright development pages** both covered. Orientation does nothing on an upright page, so the two are comparable. Same prompt, same rules, ID check in `strict` mode.
+
+| Field | Gemini 2.5 Flash | Groq Qwen | Right only on Gemini / only on Qwen | Errors not flagged (Gemini / Qwen) |
+|---|---|---|---|---|
+| ID | 6 of 16 (38%) | 3 of 16 (19%) | 3 / 0 | 4 / 1 |
+| Central number | 11 (69%) | 8 (50%) | 4 / 1 | 0 / 0 |
+| Received date | 9 (56%) | 9 (56%) | 3 / 3 | 0 / 1 |
+| Sender | 11 (69%) | 8 (50%) | 4 / 1 | 0 / 0 |
+| Commitment number | 12 (75%) | 9 (56%) | 5 / 2 | 0 / 0 |
+
+**What this supports:** Gemini is ahead on four fields and tied on the date, and the direction is consistent. **What it does not support:** a firm conclusion. With 16 pages, the disagreements are 3 to 7 pages per field (for example 5 against 2 on commitment numbers), which could easily arise by chance. Qwen's lower count of unflagged ID errors is partly because it often returns "not found" (which is flagged) where Gemini returns a wrong ID that looks verified, so that figure says more about how often each model answers than about quality.
+
+Groq on all 31 development pages it completed (with orientation): ID 19%, central 58%, date 45%, sender 52%, commitment 58%. Three pages failed: two rate limits and one rejected request (HTTP 400, cause unknown; the daily token limit was spent before it could be retried).
+
+`gemini-3.5-flash` against Groq, on 6 shared pages, is too small to read. `gemini-3.5-flash` scored 7 pages before its daily limit.
+
+Not yet measured: the test set, `gemini-3.5-flash` and the lite models on enough pages, run-to-run variation at temperature 0, orientation correction on all 11 sideways pages, and a like-for-like Groq run on the 21 pages Gemini 2.5 Flash has cached (Groq's daily tokens were spent).
 
 ---
 
@@ -311,7 +329,8 @@ Not yet measured: the test set, other Gemini models, Groq, run-to-run variation 
 - Decision: one `VisionProvider` interface with two free implementations: Gemini (Google AI Studio) and Groq (open models with image support). On day 1 both are run on the same 5 to 10 pages from the ground-truth table. The better one is the primary provider and the other is the fallback. The provider can be changed through an environment variable.
 - **Fallback chain:** one key per provider. When the primary returns 429 even after backoff, the page goes to the fallback provider, and this is recorded in the record (`provider`) so it is clear which model did the extraction.
 - **Not done:** several keys or accounts at the same provider to get around the rate limit. This goes against the terms of service of most providers and could cause a block on demo day.
-- **[OPEN]**: the result of the experiment, and timing a stack of 30 pages. Status: only Gemini has been measured. Groq is blocked by the current network filter (NetFree, HTTP 418), so the comparison has to be run from another network. The daily quota (see the quota finding below) now blocks the 30-page timing as well.
+- **Groq, measured (2026-10-21, on a network that does not block it):** the only Groq model that reads images is `qwen/qwen3.8-27b` (the earlier `llama-4-scout` was withdrawn; the other listed models are text-only). Its real limits are **200,000 tokens a day** (about 3,900 per page, so roughly 50 pages a day) and 8,000 tokens a minute; the "1,000 requests a day" it advertises is not the binding limit. Accuracy against Gemini 2.5 Flash is in section 10.1: lower on four of five fields. It is a fallback for when Gemini's quota is gone, not a replacement.
+- **[OPEN]**: which Gemini model is primary, and a timing of a 30-page stack. `gemini-3.5-flash` took about 100 seconds a page (a 30-form batch would take close to an hour); `gemini-2.5-flash` took about 12. The daily quota still blocks a full timing.
 - Consequences: low rate limits, which means limited parallel processing and handling of 429 errors. On the free tier the input may be used by the provider (see section 11). Two providers may give different accuracy, so evaluation reports each provider separately.
 - **Demo backup:** the demo stack is processed in advance and saved in the DB. If there is a rate limit during the demo, the saved results are shown.
 - **Quota finding (day 2):** the Gemini free tier allows **20 requests per day per model** (the 429 says `limit: 20`). One model therefore cannot process a 40-page stack in a day. Quotas are per model, so `GeminiProvider` walks a list of models (`GEMINI_MODEL` then `GEMINI_FALLBACK_MODELS`), skipping a model that says "retry in 17h". A 429 that asks for a wait over 90 seconds is treated as an exhausted daily quota and is not waited out. With four models that is about 80 requests a day, which covers a 40-page batch plus retries, but only if those models give similar accuracy; this has not been measured. Models differ in speed (some newer ones took over a minute for a call). Using one key with several models is within the terms of service; several keys or accounts would not be (see above).
@@ -401,7 +420,7 @@ Not yet measured: the test set, other Gemini models, Groq, run-to-run variation 
 ## 13. Open questions
 
 ### Technical
-1. **Which Gemini model?** `gemini-3.5-flash`, `gemini-3.1-flash-lite`, `gemini-3.5-flash-lite` and `gemini-2.5-flash` respond; some newer ones are very slow. Accuracy has been measured only for `gemini-2.5-flash` (and on a handful of pages for `gemini-3.5-flash`). A like-for-like comparison on the same pages is still to do, and is what decides the order of the fallback list.
+1. **Which Gemini model?** `gemini-2.5-flash` is the best measured (section 10.2) and fast (about 12 s a page). `gemini-3.5-flash` is about 100 s a page, which is too slow for a batch, and has only 7 pages measured. The lite models returned 503s and timeouts when probed. The default order in `.env` (3.5 first) should probably change to 2.5 first; accuracy of the others is unmeasured.
 2. **Rate limits on the free tier:** settled as a constraint, not a question: 20 requests per day per model (ADR-003). Open: is a four-model chain enough for the demo, and is it acceptable for the lab (it is not; see section 11).
 3. **ID check digits in the samples:** settled: 35 of 48 pass (ADR-014).
 4. **Multi-page forms:** settled: none in the samples (ADR-015).
@@ -475,7 +494,9 @@ Open, in the order I would take them: (1) run the test set and compare Gemini mo
 | Barcodes do not decode in a scan | An extra signal only, the system does not depend on it |
 | API rate limits or cost | One call per page, limited parallel processing, a chain of Gemini models and a second provider, and pre-saved results for the demo |
 | Free-tier daily quota (20 requests per model per day) stops a batch | A model fallback list, no waiting on a daily 429, and pre-processed demo results. A real lab needs a paid tier or a local model |
-| A fallback model is less accurate than the primary | Not yet measured. Compare the models on the same pages before relying on the chain |
+| A fallback model is less accurate than the primary | Measured for Groq Qwen against Gemini 2.5 Flash: lower on four of five fields (section 10.2), on only 16 pages. Use it as a last resort, and its answers are flagged like any other |
+| Groq's real daily limit is tokens, not requests (200,000, about 50 pages) | Plan on roughly 50 pages a day from Groq, and check `x-ratelimit-*` headers before a large batch |
+| A very slow model (about 100 s a page) makes a batch unusable | Prefer the fast model as primary; measure latency, not only accuracy |
 | Sideways and upside-down scans (11 of 48 samples) | Local detection, a model-assisted flip, browser tests, and the corrected image shown to the reviewer |
 | The network blocks a provider (Groq is blocked here) | The primary does not depend on it. Test the demo network in advance |
 | A person confirms a wrong value | The correction log, and the fact that only a person can clear a flag. Confirmations are not logged individually yet |
