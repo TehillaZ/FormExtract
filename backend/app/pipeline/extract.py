@@ -20,6 +20,7 @@ NOT_FOUND = "לא נמצא"
 HANDWRITTEN = "כתב יד"
 LOW_QUALITY = "איכות תמונה נמוכה"
 AMBIGUOUS_NUMBER = "כמה מספרים אפשריים בטופס"
+UNCORROBORATED_ID = "קריאה אחת בלבד, ללא סימון"
 
 __all__ = ["NOT_FOUND", "build_record", "normalize_date"]
 
@@ -47,12 +48,17 @@ def build_name(rv: RawValue) -> Field:
 
 # ---- ID -----------------------------------------------------------------------------------------
 
-def _id_confidence(checksum_ok: bool, consistent: bool) -> tuple[Confidence, list[str]]:
-    """strict: the check digit decides. lenient: it is only information (ADR-014)."""
+def _id_confidence(checksum_ok: bool, consistent: bool, corroborated: bool) -> tuple[Confidence, list[str]]:
+    """strict: the check digit decides, but passing it is not enough to call an ID verified. About one random
+    9-digit number in ten passes, and so does the printer's own ID. On the development pages 7 of the 19 IDs that
+    passed alone were wrong; all 12 right ones were highlighted. So "verified" also needs corroboration: the same
+    ID read at least twice, or the form pointing at it. lenient: the check digit is only information (ADR-014)."""
     if settings.id_checksum_mode == "strict":
         if not checksum_ok:
             return "low", ["ספרת ביקורת לא תקינה"]
-        return ("high" if consistent else "low"), []
+        if not consistent:
+            return "low", []
+        return ("high", []) if corroborated else ("medium", [UNCORROBORATED_ID])
     level: Confidence = "medium" if consistent else "low"
     return level, ([] if checksum_ok else ["ספרת ביקורת לא תקינה (מידע בלבד)"])
 
@@ -71,7 +77,9 @@ def build_id(candidates: list[RawValue]) -> Field:
     value, votes = counts.most_common(1)[0]
     source = next(c.source for n, c in valid if n == value)
     consistent = len(counts) == 1
-    level, reasons = _id_confidence(id_checksum_ok(value), consistent)
+    supporters = [c for n, c in valid if n == value]
+    corroborated = len(supporters) >= 2 or any(c.highlighted for c in supporters)
+    level, reasons = _id_confidence(id_checksum_ok(value), consistent, corroborated)
     if not consistent:
         reasons.insert(0, "קריאות לא עקביות: " + " / ".join(counts))
     # one unconfirmed handwritten read is never better than low

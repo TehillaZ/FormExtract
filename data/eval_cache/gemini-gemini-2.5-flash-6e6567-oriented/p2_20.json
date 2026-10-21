@@ -1,0 +1,84 @@
+{
+ "template": "hospital_screenshot",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "אורן",
+  "source": "printed",
+  "highlighted": false
+ },
+ "last_name": {
+  "value": "כהן",
+  "source": "printed",
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "297456",
+   "source": "printed",
+   "highlighted": true
+  },
+  {
+   "value": "11223344",
+   "source": "handwritten",
+   "highlighted": true
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "947501",
+   "source": "handwritten",
+   "highlighted": true
+  }
+ ],
+ "received_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "sender": {
+  "value": "מכבי",
+  "source": "printed",
+  "highlighted": false
+ },
+ "other_senders": [
+  {
+   "value": "כללית",
+   "source": null,
+   "highlighted": false
+  },
+  {
+   "value": "מאוחדת",
+   "source": null,
+   "highlighted": false
+  },
+  {
+   "value": "לאומית",
+   "source": null,
+   "highlighted": false
+  }
+ ],
+ "commitment_numbers": [
+  {
+   "value": "2603204",
+   "source": "printed",
+   "highlighted": true
+  },
+  {
+   "value": "2603203",
+   "source": "printed",
+   "highlighted": true
+  }
+ ]
+}

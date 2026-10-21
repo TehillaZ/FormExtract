@@ -1,0 +1,58 @@
+{
+ "template": "clalit_form17",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "פרי",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "last_name": {
+  "value": "פרוש",
+  "source": "printed",
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "11223344",
+   "source": "handwritten",
+   "highlighted": true
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "945598",
+   "source": "sticker",
+   "highlighted": false
+  }
+ ],
+ "received_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "sender": {
+  "value": "מרכז רפואי רבין",
+  "source": "printed",
+  "highlighted": false
+ },
+ "other_senders": [
+  {
+   "value": "כללית",
+   "source": null,
+   "highlighted": false
+  }
+ ],
+ "commitment_numbers": []
+}

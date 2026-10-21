@@ -163,7 +163,8 @@ def test_a_confirmation_does_not_send_an_approved_record_back_to_pending(s):
 def test_confirming_every_flagged_field_makes_the_record_clean(s):
     r = repo.save_record(s, make())
     assert r.needs_review()
-    out = repo.patch_record(s, r.id, {"first_name": "", "last_name": "", "received_date": "18/06/2026"})
+    # the ID is flagged too: one printed read that nobody highlighted is not enough to call it verified
+    out = repo.patch_record(s, r.id, {"first_name": "", "last_name": "", "received_date": "18/06/2026", "id_number": "011223344"})
     assert not out.needs_review()
     approved, skipped = repo.approve_clean(s)
     assert approved == [r.id] and skipped == []

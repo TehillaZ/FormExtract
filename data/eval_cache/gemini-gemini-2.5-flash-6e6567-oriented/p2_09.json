@@ -1,0 +1,69 @@
+{
+ "template": "hospital_lab_request",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": "בלה",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "last_name": {
+  "value": "בלה",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "11223344",
+   "source": "handwritten",
+   "highlighted": false
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "945986",
+   "source": "barcode",
+   "highlighted": false
+  }
+ ],
+ "received_date": {
+  "value": "13-08-2020",
+  "source": "stamp",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": "13-08-2020",
+  "source": "stamp",
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "sender": {
+  "value": "ב\"ח הלל יפה",
+  "source": "sticker",
+  "highlighted": false
+ },
+ "other_senders": [
+  {
+   "value": "בית החולים הממשלתי",
+   "source": null,
+   "highlighted": false
+  }
+ ],
+ "commitment_numbers": [
+  {
+   "value": "264800956",
+   "source": "barcode",
+   "highlighted": true
+  },
+  {
+   "value": "12108148",
+   "source": "barcode",
+   "highlighted": false
+  }
+ ]
+}

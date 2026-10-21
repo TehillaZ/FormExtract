@@ -6,7 +6,7 @@
   "oriented": true,
   "checksum_mode": "strict",
   "split": "dev",
-  "created_at": "2026-10-21T08:20:33Z",
+  "created_at": "2026-10-21T09:06:24Z",
   "pages_scored": 7,
   "pages_failed": 0,
   "pages": [
@@ -22,8 +22,8 @@
     "id_number": {
       "pages": 7,
       "correct": 0,
-      "flagged": 6,
-      "silent_errors": 1
+      "flagged": 7,
+      "silent_errors": 0
     },
     "central_numbers": {
       "pages": 7,

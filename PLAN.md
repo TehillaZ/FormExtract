@@ -129,7 +129,7 @@ This allows adding a new template without changing code. If the template is not 
 
 | Level | When |
 |---|---|
-| High | There is external verification: a matching barcode, an ID that passes the check digit (only in `strict` mode, see ADR-014), or an exact match of the sender to the list |
+| High | There is external verification: a matching barcode, an ID that passes the check digit **and is corroborated** (read at least twice the same way, or highlighted; only in `strict` mode, see ADR-014 and ADR-019), or an exact match of the sender to the list |
 | Medium | The reading is consistent but unverified |
 | Low | A check failed: inconsistent readings, an implausible date, a central number that is not 6 digits (for example a cropped sticker), a sender not in the list, an unverified handwritten value, low image quality, or a field that was not found |
 
@@ -253,7 +253,7 @@ Main tables: `documents` (the uploaded file), `pages`, `records`, `record_commit
 
 ### 10.1 Results so far (2026-10-20)
 
-Gemini 2.5 Flash, ID check in `strict` mode, **21 development pages**, scored from cached answers. These pages include sideways scans that were read **without** orientation correction, so the numbers understate the current pipeline. The test set has **not** been run.
+Gemini 2.5 Flash, ID check in `strict` mode, **21 development pages**, scored from cached answers. These pages include sideways scans that were read **without** orientation correction, so the numbers understate the current pipeline. The held-out test set was later run on 11 of its 14 pages (ID 5/11 correct, 1 unflagged error in 55 values; see SUMMARY.md); 3 pages wait for the next daily quota.
 
 | Field | Accuracy | Flagged | Errors not flagged |
 |---|---|---|---|
@@ -415,18 +415,32 @@ Not yet measured: the test set, `gemini-3.5-flash` and the lite models on enough
 - Why saved files and not recomputing: recomputing needs the page images and the model; the saved report needs neither, so the screen works on any machine and the results are part of the repository history.
 - Consequences: an export is a copy of personal data outside the database and outside our control (see section 11). A report reflects the answers cached at the time it was written; running the script again replaces it.
 
+### ADR-019: An ID is verified only when it is corroborated
+- Context: passing the check digit was enough to call an ID "verified". About one random 9-digit number in ten passes it, and so does the printer's own ID, which the page also shows. On the development pages, **7 of the 19 IDs marked verified were wrong (37%)**.
+- Evidence (saved answers of three runs, development pages only, 59 page-answers): all 12 correct "verified" IDs were highlighted, and none were lone printed reads. Four of the seven wrong ones were a single printed read nobody had highlighted (the printer's ID on `p1_05`, and other printed numbers); three were highlighted but hallucinated: the models complete a sample ID to the common `011223344`.
+- Decision: in `strict` mode an ID is **high** only if it passes the check digit, all reads agree, **and** it is corroborated: the same ID read at least twice, or the form points at it (highlighted). A lone, unhighlighted read that passes is **medium** with the reason "קריאה אחת בלבד, ללא סימון". A failed check digit, disagreeing reads and the handwriting rule are unchanged, and `lenient` mode is unchanged.
+- Effect on the saved answers (no accuracy change, only confidence): errors that were not flagged on the ID, Gemini 2.5 Flash 4 to 2 of 14 pages; Groq 2 to 1 of 25; Gemini 3.5 Flash 1 to 0 of 7. The price is more IDs for a person to check (flagged on Gemini 2.5 Flash: 52% to 62%).
+- Not fixed by this: a highlighted ID the model "completes" to a common pattern. No rule on one page can tell that from a correct read. The sample IDs are fake and unusually uniform, so this is probably less common on real forms.
+- Consequences: the rule depends on the highlight on the samples; on unmarked real forms an ID becomes verified only through two matching reads (sticker plus handwriting), so most IDs will be checked by a person.
+
+### ADR-020: A demo that does not need a model
+- Context: the free tier allows 20 requests a day per Gemini model and Groq about 50 pages a day, so a demo cannot count on a live run.
+- Decision: `scripts/seed_demo.py` fills the database from model answers already saved in the evaluation caches. It replays an answer through the **real pipeline** (turning, enhancement, barcodes, normalization, confidence, storage), replacing only the model call, so the demo cannot drift from what the app does. Each record's provider reads "gemini:gemini-2.5-flash (saved answer)", so it is never mistaken for a live run. It is idempotent (a page already uploaded is left alone) and has a `--dry-run`.
+- Details: answers saved from unturned pages are never used for sideways pages. Five sample scans are still upside down after the quarter turn; `data/sample_orientation.json` lists them (checked by eye) so the replay says "upside down" once, as a real model would, and the page is shown upright.
+- Consequences: the seeded forms show what the models said at the time, not a fresh run. Anyone presenting them should say so. The table starts with every form needing review, which is true.
+
 ---
 
 ## 13. Open questions
 
 ### Technical
-1. **Which Gemini model?** `gemini-2.5-flash` is the best measured (section 10.2) and fast (about 12 s a page). `gemini-3.5-flash` is about 100 s a page, which is too slow for a batch, and has only 7 pages measured. The lite models returned 503s and timeouts when probed. The default order in `.env` (3.5 first) should probably change to 2.5 first; accuracy of the others is unmeasured.
+1. **Which Gemini model?** `gemini-2.5-flash` is the best measured (section 10.2) and fast (about 12 s a page). `gemini-3.5-flash` is about 100 s a page, which is too slow for a batch, and has only 7 pages measured. The lite models returned 503s and timeouts when probed. The default order is now 2.5-flash first and 3.5-flash last; the accuracy of the others is unmeasured.
 2. **Rate limits on the free tier:** settled as a constraint, not a question: 20 requests per day per model (ADR-003). Open: is a four-model chain enough for the demo, and is it acceptable for the lab (it is not; see section 11).
 3. **ID check digits in the samples:** settled: 35 of 48 pass (ADR-014).
 4. **Multi-page forms:** settled: none in the samples (ADR-015).
 5. **Cloud deployment:** which service for the backend and PostgreSQL. To be decided after submission.
 6. **Schema migrations:** there is no Alembic yet. A schema change currently needs a reset of the dev database.
-7. **Accuracy on the test set and on unmarked forms:** not measured. The samples are highlighted, real forms are not.
+7. **Accuracy on the test set and on unmarked forms:** measured on 11 of 14 test pages only; unmarked forms not measured. The samples are highlighted, real forms are not.
 8. **Run-to-run variation:** the same page can give slightly different answers at temperature 0. Not measured.
 
 ### For the organizers
@@ -459,7 +473,7 @@ Open, in the order I would take them: (1) run the test set and compare Gemini mo
 - [x] Normalization and validations
 - [x] Save to DB and API (FastAPI: upload, status, records, patch, approve, approve-clean, images, senders)
 - [ ] Timing a stack of 30 pages (blocked by the daily quota)
-- [x] First run of the evaluation script (dev set, partial; test set not run)
+- [x] First run of the evaluation script (dev set, partial; test set run on 11 of 14 pages)
 
 ### Day 2
 - [ ] Template hints for the main senders
@@ -469,7 +483,7 @@ Open, in the order I would take them: (1) run the test set and compare Gemini mo
 - [x] Review table and single-form screen (attach and split forms: not built, not needed by the samples)
 - [x] Records screen with filtering: search by name, ID or number; status, sender and received-date filters; paging with a real total
 - [~] Duplicate detection (hash and warnings done in the API and the form screen; the upload notice is tested)
-- [ ] Running the evaluation on the test set
+- [ ] Running the evaluation on the test set (11 of 14 pages done; 3 left)
 - [x] README, run instructions and test instructions (the final summary of approach, limitations and lab requirements is still to write)
 - [ ] Pre-processing the demo stack and saving it in the DB (backup for the rate limit)
 - [ ] Rehearsing the demo scenario

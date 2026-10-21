@@ -1,0 +1,64 @@
+{
+ "template": "wolfson_hospital_commitment",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "last_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "12223344",
+   "source": "printed",
+   "highlighted": true
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "948023",
+   "source": "sticker",
+   "highlighted": false
+  }
+ ],
+ "received_date": {
+  "value": "30.8.2022",
+  "source": "stamp",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": "30.8.2022",
+  "source": "stamp",
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": "30.8.26",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "sender": {
+  "value": "המרכז הרפואי האוניברסיטאי ע\"ש אדית וולפסון",
+  "source": "printed",
+  "highlighted": true
+ },
+ "other_senders": [
+  {
+   "value": "מכבי",
+   "source": null,
+   "highlighted": false
+  }
+ ],
+ "commitment_numbers": [
+  {
+   "value": "7254647",
+   "source": "barcode",
+   "highlighted": true
+  }
+ ]
+}

@@ -1,0 +1,68 @@
+{
+ "template": "wolfson_commitment",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "last_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "11223349",
+   "source": "printed",
+   "highlighted": true
+  },
+  {
+   "value": "12043641",
+   "source": "printed",
+   "highlighted": false
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "947468",
+   "source": "barcode",
+   "highlighted": false
+  },
+  {
+   "value": "947469",
+   "source": "barcode",
+   "highlighted": false
+  }
+ ],
+ "received_date": {
+  "value": "25.08.26",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": "25.08.26",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "sender": {
+  "value": "המרכז הרפואי האוניברסיטאי ע\"ש אדית וולפסון",
+  "source": "printed",
+  "highlighted": true
+ },
+ "other_senders": [],
+ "commitment_numbers": [
+  {
+   "value": "7254627",
+   "source": "barcode",
+   "highlighted": true
+  }
+ ]
+}

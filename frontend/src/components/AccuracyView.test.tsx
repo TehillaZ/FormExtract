@@ -199,3 +199,38 @@ describe('AccuracyView: reports that cover different pages', () => {
     expect(screen.queryByTestId('different-pages')).not.toBeInTheDocument()
   })
 })
+
+
+describe('AccuracyView: how much of the test set was run', () => {
+  const testRun = (scored: number, split: 'test' | 'all' = 'test') =>
+    makeReport({ tag: `gemini-test-${scored}-${split}`, model: 'model-t', split, pages_scored: scored, pages: Array.from({ length: scored }, (_, i) => `t${i}`) })
+
+  it('warns when the test set was run only in part, saying how many pages', async () => {
+    await open([reportA(), testRun(11)])
+    expect(screen.queryByTestId('test-not-run')).not.toBeInTheDocument()
+    expect(screen.getByTestId('test-partly-run')).toHaveTextContent('הורץ חלקית: 11 מתוך 14 עמודים')
+  })
+
+  it('says nothing about the test set once every one of its pages was scored', async () => {
+    await open([reportA(), testRun(14)])
+    expect(screen.queryByTestId('test-not-run')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('test-partly-run')).not.toBeInTheDocument()
+  })
+
+  it('a run over all pages counts as covering the test set only when it scored every page', async () => {
+    await open([testRun(48, 'all')])
+    expect(screen.queryByTestId('test-partly-run')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('test-not-run')).not.toBeInTheDocument()
+  })
+
+  it('a run over all pages that stopped early does not count as the whole set', async () => {
+    await open([testRun(30, 'all')])
+    expect(screen.getByTestId('test-not-run')).toBeInTheDocument()
+  })
+
+  it('still says it was not run when there is no test report at all', async () => {
+    await open([reportA()])
+    expect(screen.getByTestId('test-not-run')).toBeInTheDocument()
+    expect(screen.queryByTestId('test-partly-run')).not.toBeInTheDocument()
+  })
+})

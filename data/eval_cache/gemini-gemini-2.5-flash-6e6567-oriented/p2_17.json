@@ -1,0 +1,63 @@
+{
+ "template": "clalit_meir_form",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "last_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "id_numbers": [],
+ "central_numbers": [
+  {
+   "value": "948258",
+   "source": "barcode",
+   "highlighted": true
+  }
+ ],
+ "received_date": {
+  "value": "31-08-2026",
+  "source": "handwritten",
+  "highlighted": true
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": "31-08-2026",
+  "source": "handwritten",
+  "highlighted": true
+ },
+ "sender": {
+  "value": "מרכז רפואי מאיר",
+  "source": "printed",
+  "highlighted": true
+ },
+ "other_senders": [
+  {
+   "value": "כללית",
+   "source": null,
+   "highlighted": false
+  }
+ ],
+ "commitment_numbers": [
+  {
+   "value": "11225544",
+   "source": "barcode",
+   "highlighted": true
+  },
+  {
+   "value": "2825751832-01",
+   "source": "sticker",
+   "highlighted": true
+  }
+ ]
+}

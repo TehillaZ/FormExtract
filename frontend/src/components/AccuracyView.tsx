@@ -16,13 +16,21 @@ function Delta({ points }: { points: number }) {
 
 /** What the accuracy numbers are and are not: never show a number without saying how many pages stand behind it. */
 function Caveats({ reports, testPages, devPages }: { reports: EvaluationReport[]; testPages: number; devPages: number }) {
-  const testRun = reports.some((r) => r.split === 'test' || r.split === 'all')
+  // the most test pages any report covers: a run that stopped early (a daily quota) must not look like a finished one
+  const testCovered = Math.max(0, ...reports.filter((r) => r.split === 'test').map((r) => r.pages_scored))
+  const wholeSet = reports.some((r) => r.split === 'all' && r.pages_scored >= devPages + testPages)   // a run over everything
+  const covered = wholeSet ? testPages : testCovered
   return (
     <div role="note" className="flex flex-col gap-1.5 rounded-xl border border-edge bg-surface px-4 py-3 text-[13px] text-sub">
-      {!testRun && (
+      {covered === 0 && (
         <div className="font-semibold text-warn-ink" data-testid="test-not-run">
           סט הבדיקה ({testPages} עמודים) טרם הורץ. כל המספרים כאן הם על עמודי פיתוח ({devPages} עמודים), שעליהם כוונו הפרומפט והכללים,
           ולכן אינם מייצגים דיוק סופי.
+        </div>
+      )}
+      {covered > 0 && covered < testPages && (
+        <div className="font-semibold text-warn-ink" data-testid="test-partly-run">
+          סט הבדיקה הורץ חלקית: {covered} מתוך {testPages} עמודים. המספרים על סט הבדיקה מבוססים על מעט עמודים, והם עדיין לא התוצאה הסופית.
         </div>
       )}
       <div>הדוגמאות מסומנות במרקר צהוב, ולכן הדיוק בשטח צפוי להיות נמוך יותר.</div>

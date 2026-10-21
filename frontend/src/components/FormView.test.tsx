@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { describe, expect, it } from 'vitest'
@@ -159,5 +159,121 @@ describe('FormView: expanded view', () => {
     expect(within(dialog).getByText('דנה כהן')).toBeInTheDocument()
     await user.click(within(dialog).getByRole('button', { name: 'הטופס הקודם' }))   // wraps to the last
     expect(within(dialog).getByText('משה ישראלי')).toBeInTheDocument()
+  })
+})
+
+
+describe('FormView: keyboard shortcuts', () => {
+  const list = () => screen.getByLabelText('רשימת הטפסים', { selector: 'aside' })
+
+  it('shows the shortcuts on screen', async () => {
+    await open()
+    const hint = screen.getByLabelText('קיצורי מקלדת')
+    for (const key of ['↑', '↓', 'N', 'A', 'L']) expect(hint).toHaveTextContent(key)
+  })
+
+  it('the arrow keys move to the next and previous form, going round at the ends', async () => {
+    const { user } = await open('a')
+    await user.keyboard('{ArrowDown}')
+    expect(title()).toHaveTextContent('רונן לוי')
+    await user.keyboard('{ArrowDown}{ArrowDown}')
+    expect(title()).toHaveTextContent('דנה כהן')             // wrapped round
+    await user.keyboard('{ArrowUp}')
+    expect(title()).toHaveTextContent('משה ישראלי')
+  })
+
+  it('N jumps to the next form that needs review, skipping clean ones', async () => {
+    const { user } = await open('a')
+    await user.keyboard('n')
+    expect(title()).toHaveTextContent('רונן לוי')
+    await user.keyboard('n')
+    expect(title()).toHaveTextContent('משה ישראלי')
+  })
+
+  it('works on a Hebrew keyboard: it is the physical key that counts', async () => {
+    await open('a')
+    fireEvent.keyDown(window, { code: 'KeyN', key: 'ט' })
+    expect(title()).toHaveTextContent('רונן לוי')
+  })
+
+  it('L opens and closes the list of forms', async () => {
+    const { user } = await open()
+    expect(list()).toHaveStyle({ width: '236px' })
+    await user.keyboard('l')
+    expect(list()).toHaveStyle({ width: '0px' })
+    await user.keyboard('l')
+    expect(list()).toHaveStyle({ width: '236px' })
+  })
+
+  describe('A approves, but only a form with nothing left to check', () => {
+    it('refuses a form that still has flagged fields, and says why', async () => {
+      const { api, user } = await open('b')
+      await user.keyboard('a')
+      expect(await screen.findByRole('status')).toHaveTextContent('אי אפשר לאשר במקלדת כשיש שדות לבדיקה')
+      expect(api.called('POST', '/approve')).toHaveLength(0)
+      expect(api.records.find((r) => r.id === 'b')?.status).toBe('pending')
+    })
+
+    it('the refusal does not follow you to another form', async () => {
+      const { user } = await open('b')
+      await user.keyboard('a')
+      await screen.findByRole('status')
+      await user.keyboard('{ArrowDown}')
+      expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    })
+
+    it('approves a clean form and moves on to the next one that needs review', async () => {
+      const { api, user } = await open('a')
+      await user.keyboard('a')
+      await waitFor(() => expect(api.called('POST', '/records/a/approve')).toHaveLength(1))
+      await waitFor(() => expect(title()).toHaveTextContent('רונן לוי'))
+    })
+
+    it('does nothing on a form that is already approved', async () => {
+      const { api, user } = await open('a', [makeRecord('a', { status: 'approved' }), flaggedRecord('b', 'רונן', 'לוי')])
+      await user.keyboard('a')
+      expect(api.called('POST', '/approve')).toHaveLength(0)
+    })
+
+    it('the button still lets a person deliberately approve a flagged form', async () => {
+      const { api, user } = await open('b')
+      await user.click(screen.getByRole('button', { name: 'אשרי ושמרי' }))
+      await waitFor(() => expect(api.called('POST', '/records/b/approve')).toHaveLength(1))
+    })
+  })
+
+  describe('never gets in the way of typing or of browser commands', () => {
+    it('typing in a field editor does not trigger a shortcut', async () => {
+      const { api, user } = await open('b')
+      await user.click(screen.getByText('939376'))
+      const box = screen.getByLabelText('מספר מרכזי')
+      await user.type(box, 'nal')                       // N, A and L are all shortcuts
+      expect(box).toHaveValue('939376nal')
+      expect(title()).toHaveTextContent('רונן לוי')
+      expect(api.called('POST', '/approve')).toHaveLength(0)
+      expect(list()).toHaveStyle({ width: '236px' })
+    })
+
+    it('typing in the search box does not trigger a shortcut', async () => {
+      const { user } = await open('a')
+      await user.type(screen.getByLabelText('חיפוש טפסים'), 'nal')
+      expect(title()).toHaveTextContent('דנה כהן')
+    })
+
+    it('Ctrl+A stays "select all" and does not approve', async () => {
+      const { api, user } = await open('a')
+      await user.keyboard('{Control>}a{/Control}')
+      expect(api.called('POST', '/approve')).toHaveLength(0)
+    })
+
+    it('the shortcuts are off while the full-screen viewer is open', async () => {
+      const { api, user } = await open('a')
+      await user.click(screen.getByRole('button', { name: 'הרחבה למסך מלא' }))
+      await user.keyboard('a')
+      expect(api.called('POST', '/approve')).toHaveLength(0)
+      await user.keyboard('{Escape}')
+      await user.keyboard('a')                          // closed again: now it works
+      await waitFor(() => expect(api.called('POST', '/records/a/approve')).toHaveLength(1))
+    })
   })
 })

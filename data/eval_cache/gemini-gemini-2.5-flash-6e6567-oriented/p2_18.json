@@ -1,0 +1,79 @@
+{
+ "template": "clalit_kaplan_form",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "last_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "11223344",
+   "source": "handwritten",
+   "highlighted": true
+  },
+  {
+   "value": "12002",
+   "source": "printed",
+   "highlighted": false
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "946834",
+   "source": "barcode",
+   "highlighted": true
+  }
+ ],
+ "received_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "sender": {
+  "value": "המרכז הרפואי קפלן",
+  "source": "printed",
+  "highlighted": true
+ },
+ "other_senders": [
+  {
+   "value": "מכבי",
+   "source": null,
+   "highlighted": false
+  },
+  {
+   "value": "כללית",
+   "source": null,
+   "highlighted": false
+  }
+ ],
+ "commitment_numbers": [
+  {
+   "value": "66608446",
+   "source": "barcode",
+   "highlighted": false
+  },
+  {
+   "value": "232110",
+   "source": "printed",
+   "highlighted": false
+  }
+ ]
+}

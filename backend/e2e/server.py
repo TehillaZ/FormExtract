@@ -38,7 +38,7 @@ def form_a() -> RawExtraction:
     return RawExtraction(
         template="clalit",
         first_name=V(value="דנה", source="printed"), last_name=V(value="כהן", source="printed"),
-        id_numbers=[V(value="011223344", source="printed")],
+        id_numbers=[V(value="011223344", source="printed", highlighted=True)],   # the form points at it: verified
         central_numbers=[V(value="939376", source="sticker")],
         stamp_date=V(value="18/06/2026", source="stamp"),
         sender=V(value="כללית", source="printed", highlighted=True),
@@ -69,7 +69,7 @@ def form_d() -> RawExtraction:
     return RawExtraction(
         template="clalit",
         first_name=V(value="יעל", source="printed"), last_name=V(value="אדם", source="printed"),
-        id_numbers=[V(value="011223344", source="printed")],
+        id_numbers=[V(value="011223344", source="printed", highlighted=True)],
         central_numbers=[V(value="939001", source="sticker")],
         stamp_date=V(value="20/06/2026", source="stamp"),
         sender=V(value="כללית", source="printed", highlighted=True),

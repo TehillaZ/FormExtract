@@ -99,3 +99,48 @@ def test_barcode_match_among_unmarked_competitors_is_medium():
                                             V(value="730578626", source="printed")])
     rec = build_record(raw, ["0046025783", "730578626"])
     assert {f.confidence for f in rec.commitment_numbers} == {"medium"}
+
+
+
+# ---- an ID is "verified" only when it is corroborated: passing the check digit alone is not enough --------------
+
+class TestIdCorroboration:
+    VALID = "011223344"     # passes the check digit
+
+    def id_field(self, *reads: V):
+        return build_record(RawExtraction(id_numbers=list(reads)), []).id_number
+
+    def test_one_printed_read_nobody_highlighted_is_not_verified(self):
+        # the printer's or a staff member's ID looks exactly like this, and about one random number in ten passes
+        f = self.id_field(V(value=self.VALID, source="printed"))
+        assert f.value == "011223344" and f.confidence == "medium" and f.reasons == ["קריאה אחת בלבד, ללא סימון"]
+
+    def test_the_form_pointing_at_it_makes_it_verified(self):
+        assert self.id_field(V(value=self.VALID, source="sticker", highlighted=True)).confidence == "high"
+
+    def test_the_same_id_read_twice_makes_it_verified_even_without_a_highlight(self):
+        f = self.id_field(V(value=self.VALID, source="sticker"), V(value="11223344", source="handwritten"))
+        assert f.value == "011223344" and f.confidence == "high" and f.reasons == []
+
+    def test_a_lone_handwritten_read_is_still_low(self):
+        f = self.id_field(V(value=self.VALID, source="handwritten"))
+        assert f.confidence == "low" and "כתב יד" in f.reasons
+
+    def test_two_different_reads_are_low_even_if_both_pass(self):
+        f = self.id_field(V(value="011223344", source="printed"), V(value="308462795", source="printed"))
+        assert f.confidence == "low"
+
+    def test_a_failed_check_digit_stays_low_however_much_agrees_or_is_highlighted(self):
+        f = self.id_field(V(value="001122334", source="sticker", highlighted=True), V(value="001122334", source="handwritten"))
+        assert f.confidence == "low" and "ספרת ביקורת לא תקינה" in f.reasons
+
+    def test_corroboration_must_support_the_chosen_value_not_a_rival(self):
+        # a highlighted read of one ID and a lone printed read of another: only the highlighted one is chosen
+        f = self.id_field(V(value="308462795", source="printed"), V(value=self.VALID, source="sticker", highlighted=True))
+        assert f.value == "011223344" and f.confidence == "high"
+
+    def test_lenient_mode_is_unchanged_the_check_digit_never_makes_it_high(self, monkeypatch):
+        from app.config import settings
+        monkeypatch.setattr(settings, "id_checksum_mode", "lenient")
+        f = self.id_field(V(value=self.VALID, source="sticker", highlighted=True))
+        assert f.confidence == "medium" and f.reasons == []

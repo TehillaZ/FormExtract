@@ -229,3 +229,45 @@ test.describe('approving', () => {
     await expect(tableRow(page, 'לא נמצא')).not.toContainText('מאושר')
   })
 })
+
+test.describe('keyboard shortcuts', () => {
+  test('A is refused while fields are flagged, and approves once every one is confirmed', async ({ page }) => {
+    await uploadForms(page, 'form-a', 'form-c')
+    await openForm(page, /דנה/)
+    const title = page.getByRole('heading', { level: 2 })
+
+    await page.keyboard.press('KeyA')
+    await expect(page.getByRole('status')).toContainText('אי אפשר לאשר במקלדת')
+    await expect(title).toContainText('דנה כהן')
+
+    for (const label of ['שם פרטי', 'שם משפחה', 'מספר מרכזי', 'תאריך קבלה', 'מספר התחייבות']) {
+      await fieldsPanel(page).getByRole('button', { name: new RegExp(`אשרי ש.*${label}`) }).click()
+      await expect(fieldRow(page, label)).toHaveAttribute('data-flagged', 'false')
+    }
+    await page.keyboard.press('KeyA')
+    await expect(title).toContainText('ללא שם')          // approved, and moved on to the next form to review
+
+    await page.getByRole('tab', { name: 'טבלה' }).click()
+    await expect(tableRow(page, 'דנה')).toContainText('מאושר')
+  })
+
+  test('the arrow keys and N move between forms, and typing in a field does not trigger them', async ({ page }) => {
+    await uploadForms(page, 'form-a', 'form-b')
+    await openForm(page, /דנה/)
+    const title = page.getByRole('heading', { level: 2 })
+
+    await page.keyboard.press('ArrowDown')
+    await expect(title).toContainText('רונן פלג')
+    await page.keyboard.press('ArrowUp')
+    await expect(title).toContainText('דנה כהן')
+    await page.keyboard.press('KeyN')
+    await expect(title).toContainText('רונן פלג')
+
+    await fieldRow(page, 'שם פרטי').getByText('רונן').click()
+    const box = page.getByLabel('שם פרטי', { exact: true })
+    await box.press('Control+a')
+    await page.keyboard.type('nal')                      // N, A and L are all shortcuts
+    await expect(box).toHaveValue('nal')
+    await expect(title).toContainText('רונן פלג')
+  })
+})

@@ -12,10 +12,10 @@ The full path works end to end: upload, processing, review, correction, approval
 
 | Area | State |
 |---|---|
-| Ingest (PDF, images, HEIC), perspective fix, deskew, contrast, barcodes | done |
+| Ingest (PDF, images, HEIC), perspective fix, deskew, contrast, barcodes (decoded plain, binarized and enlarged: 55 of the 97 numbers on the samples) | done |
 | Orientation: sideways scans turned locally, upside-down scans flipped after a model check | done; 4 browser tests, but accuracy effect measured on only 2 real pages |
 | Extraction with a vision model (Gemini), normalization, per-field confidence with reasons | done |
-| Closed sender list (55 senders) with fuzzy matching, ID check digit (`strict` / `lenient`) | done |
+| Closed sender list (55 senders) with fuzzy matching, ID check digit (`strict` / `lenient`); an ID counts as verified only when it is also corroborated (read twice, or highlighted: PLAN ADR-019) | done |
 | Gemini model fallback list and quota-aware retries | done (see Known limitations) |
 | Groq as a second provider | done and measured: `qwen/qwen3.8-27b`, lower accuracy than Gemini 2.5 Flash, about 50 pages a day (see PLAN 10.2) |
 | Database (PostgreSQL, SQLAlchemy): save, search, correct, confirm, approve, duplicate warnings | done |
@@ -24,12 +24,14 @@ The full path works end to end: upload, processing, review, correction, approval
 | Records screen: search by name, ID or number; filter by status, sender and received date; paging with a real total | done |
 | Export of the filtered records to Excel or CSV | done |
 | Accuracy-report screen: saved evaluation runs side by side, with what was not measured | done; shows one report so far |
-| Tests: 170 backend, 166 frontend, 38 browser end-to-end | done |
-| Evaluation against hand-verified ground truth, dev/test split | done; **test set not run yet** |
+| Tests: 221 backend, 202 frontend, 40 browser end-to-end | done |
+| Evaluation against hand-verified ground truth, dev/test split | done; **test set run on 11 of 14 pages (3 left for the next quota)** |
 | Template hints, a second model call for uncertain fields | not started |
 | Attach / split forms in the UI | not started (not needed by the samples) |
 | Marking field positions on the image | not started (needs coordinates from the model) |
-| Timing a 30-page batch, pre-processed demo results | not done (blocked by the daily quota) |
+| One-command start (`start.ps1` / `start.sh`) and a demo from saved answers (`seed_demo.py`) | done |
+| Keyboard shortcuts in the review screen (↑↓ forms, N next to review, A approve a clean form, L list) | done |
+| Timing a 30-page batch | not done (blocked by the daily quota) |
 
 ## How it works
 
@@ -64,7 +66,16 @@ cp ../.env.example ../.env                          # then fill in GEMINI_API_KE
 
 Database (PostgreSQL 16): `docker compose up -d db` from the repo root. There are no schema migrations yet: after a schema change, reset the dev database.
 
-### Run the app
+### Run the app: one command
+
+```powershell
+.\start.ps1 -Seed        # Windows: database, interface, API on one server; -Seed fills it with the sample forms
+./start.sh --seed        # Linux / macOS / Git Bash
+```
+
+Then open **http://localhost:8000**. The first run builds the interface (`npm install` and `npm run build`); add `-Rebuild` after changing the frontend. The API serves the built interface (`app.web:root`), so the demo needs no Node process and only one terminal. Docker Desktop must be running.
+
+### Run the app: development (two terminals, with hot reload)
 
 ```bash
 # terminal 1: API on :8000 (needs the database above and a vision key in .env)
@@ -109,6 +120,17 @@ A run over a whole split (or everything) also saves a small report to `data/eval
 
 For each field it reports accuracy, % flagged, and **errors that were not flagged** (the metric that matters most, because those reach the database unnoticed). Answers are cached in `data/eval_cache/<provider>-<model>-<prompt-hash>[-oriented]/`, so changing the prompt starts a fresh cache and re-scoring costs nothing. `data/split.json` reserves 14 pages as a **test set**: do not tune prompts on them. Results so far are in PLAN section 10.
 
+## A demo that does not need a model
+
+Free-tier quotas can run out and networks can block a provider, so the sample forms can be loaded **without calling any model**:
+
+```bash
+python scripts/seed_demo.py --dry-run     # what would be loaded, and from which saved answer
+python scripts/seed_demo.py               # load them (also: .\start.ps1 -Seed)
+```
+
+It takes the model answers already saved in `data/eval_cache` and replays them through the **real pipeline** (turning the page, enhancement, barcodes, normalization, confidence, storage), replacing only the model call. Today that gives **44 forms**: 18 from Gemini 2.5 Flash, 2 from Gemini 3.5 Flash and 13 from Groq Qwen. Every record's provider reads for example `gemini:gemini-2.5-flash (saved answer)`, so it is never mistaken for a live run: **say so when you present it.** Running it again changes nothing. Needs `data/pages` (see below). Five sideways sample scans are still upside down after the turn; `data/sample_orientation.json` lists them so the replay shows them upright (PLAN ADR-020).
+
 ## Exporting records
 
 The **רשומות** tab has two export buttons that download every record matching the filters on screen (not only the current page):
@@ -136,7 +158,7 @@ Learned from the samples rather than the task text (PLAN ADR-013):
 ## Known limitations
 
 - **Model quota.** The Gemini free tier allows **20 requests per day per model**. The provider walks a list of models (`GEMINI_FALLBACK_MODELS`), which gives roughly 80 a day, but accuracy across those models has not been compared, and some newer models answer slowly. A 40-form stack is possible only with fallbacks, and a real lab needs a paid tier or a local model. Pre-processed demo results remain the safety net.
-- **Accuracy is not established.** The measured numbers cover 21 development pages (plus 2 sideways pages), on yellow-highlighted samples, so they are probably optimistic. The test set has not been run. Handwritten digits are often misread; they are flagged, not guessed.
+- **Accuracy is not established.** The measured numbers cover 21 development pages (plus 2 sideways pages), on yellow-highlighted samples, so they are probably optimistic. The held-out test set was run on 11 of 14 pages (1 error in 55 values was not flagged); see SUMMARY.md. Handwritten digits are often misread; they are flagged, not guessed.
 - **Handwritten names are never trusted**: always flagged.
 - Upside-down pages (180°) are detected only through the model's own flag, at the cost of one extra call per such page.
 - Two forms on one page, and forms spanning several pages, are not supported (none exist in the samples).

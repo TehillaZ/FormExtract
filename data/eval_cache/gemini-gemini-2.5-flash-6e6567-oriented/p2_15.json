@@ -1,0 +1,69 @@
+{
+ "template": "clalit_form17",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "last_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "11223344",
+   "source": "handwritten",
+   "highlighted": true
+  },
+  {
+   "value": "26224944",
+   "source": "sticker",
+   "highlighted": false
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "948246",
+   "source": "sticker",
+   "highlighted": true
+  }
+ ],
+ "received_date": {
+  "value": "17/09/2023",
+  "source": "stamp",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": "17/09/2023",
+  "source": "stamp",
+  "highlighted": false
+ },
+ "handwritten_date": {
+  "value": "27/3/26",
+  "source": "handwritten",
+  "highlighted": false
+ },
+ "sender": {
+  "value": "בית חולים סורוקה",
+  "source": "stamp",
+  "highlighted": true
+ },
+ "other_senders": [
+  {
+   "value": "כללית",
+   "source": null,
+   "highlighted": false
+  }
+ ],
+ "commitment_numbers": [
+  {
+   "value": "X132797",
+   "source": "sticker",
+   "highlighted": true
+  }
+ ]
+}

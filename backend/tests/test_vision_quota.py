@@ -117,3 +117,13 @@ class TestGeminiFallback:
     def test_the_fallback_list_comes_from_settings_and_never_repeats_the_primary(self):
         p = GeminiProvider("a", ["a", "b"])
         assert p.models == ["a", "b"]
+
+
+def test_the_default_model_order_puts_the_fast_measured_model_first_and_the_slow_one_last():
+    """gemini-2.5-flash was the most accurate on the shared pages and takes about 12 s a page; gemini-3.5-flash takes
+    about 100 s, which makes a 30-form batch take close to an hour. Changing this order is a decision, not a tweak."""
+    from app.config import Settings
+    settings = Settings(_env_file=None)
+    models = [settings.gemini_model, *settings.gemini_fallback_models]
+    assert models[0] == "gemini-2.5-flash" and models[-1] == "gemini-3.5-flash"
+    assert len(set(models)) == len(models)

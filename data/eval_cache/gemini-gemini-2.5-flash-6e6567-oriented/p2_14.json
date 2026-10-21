@@ -1,0 +1,69 @@
+{
+ "template": "clalit_lab_request",
+ "is_continuation": false,
+ "text_upside_down": false,
+ "image_unreadable": false,
+ "first_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "last_name": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "id_numbers": [
+  {
+   "value": "1223344",
+   "source": "handwritten",
+   "highlighted": true
+  }
+ ],
+ "central_numbers": [
+  {
+   "value": "947828",
+   "source": "barcode",
+   "highlighted": true
+  }
+ ],
+ "received_date": {
+  "value": "24-08-2026",
+  "source": "stamp",
+  "highlighted": false
+ },
+ "stamp_date": {
+  "value": "24-08-2026",
+  "source": "stamp",
+  "highlighted": true
+ },
+ "handwritten_date": {
+  "value": null,
+  "source": null,
+  "highlighted": false
+ },
+ "sender": {
+  "value": "בית ליניאדו",
+  "source": "printed",
+  "highlighted": false
+ },
+ "other_senders": [
+  {
+   "value": "כללית",
+   "source": null,
+   "highlighted": false
+  }
+ ],
+ "commitment_numbers": [
+  {
+   "value": "X132767",
+   "source": "barcode",
+   "highlighted": true
+  },
+  {
+   "value": "26220695",
+   "source": "barcode",
+   "highlighted": false
+  }
+ ]
+}

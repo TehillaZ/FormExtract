@@ -1,0 +1,4 @@
+{
+  "note": "Sample scans that are still upside down after one clockwise quarter turn, checked by eye on the 48 samples. Used only by scripts/seed_demo.py to show those pages the right way up. The other sideways samples (p1_03, p1_11, p1_25, p2_20, p2_21, p2_22) are upright after the turn.",
+  "flip_after_turn": ["p1_14", "p1_22", "p1_23", "p2_14", "p2_15"]
+}
