@@ -163,6 +163,21 @@ Learned from the samples rather than the task text (PLAN ADR-013):
 
 When people keep fixing the same reading the same way on one sender's forms (at least 3 times, 75% agreeing), the next form with that reading shows a suggestion: "on earlier forms from this sender, X was corrected to Y (3 of 3)". It is only applied when the user presses the button (PLAN ADR-023). The "טעויות חוזרות" tab lists all repeated corrections.
 
+## Deploying to Render
+
+`Dockerfile` builds the interface and the API into one image, and `render.yaml` describes one web service plus one Postgres database.
+
+1. Push the repository to GitHub. In Render: **New > Blueprint**, pick the repository.
+2. It asks for `GEMINI_API_KEY` (and `GROQ_API_KEY`). The two passwords are generated: read them in the service's **Environment** tab.
+3. The first deploy takes a few minutes. Open the service URL and log in.
+
+Things to know before relying on it:
+- **Uploaded images do not last** on the free plan: its disk is erased on every deploy and restart. Records stay in the database, but a form's image disappears. A persistent disk (paid) or cloud image storage is needed to keep them.
+- A page that is being read when the service restarts stays "בעיבוד" (not recovered yet).
+- The free plan sleeps when idle and its database expires after a while: check Render's current terms.
+- The cookie is not yet marked Secure, and wrong passwords are not rate-limited.
+- The image was not built end to end on the development machine (its network blocked pip's certificate check), so the first Render build is the real test.
+
 ## Known limitations
 
 - **Model quota.** The Gemini free tier allows **20 requests per day per model**. The provider walks a list of models (`GEMINI_FALLBACK_MODELS`), which gives roughly 80 a day, but accuracy across those models has not been compared, and some newer models answer slowly. A 40-form stack is possible only with fallbacks, and a real lab needs a paid tier or a local model. Pre-processed demo results remain the safety net.

@@ -4,6 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Literal
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -27,6 +28,15 @@ class Settings(BaseSettings):
     storage_dir: str = "./data/storage"
     user_password: str = ""        # the "user" role; empty means nobody can log in as a user
     developer_password: str = ""   # the "developer" role (accuracy and repeated-mistakes screens)
+
+    @field_validator("database_url")
+    @classmethod
+    def _driver(cls, url: str) -> str:
+        """Hosts (Render, Heroku) hand out postgres:// or postgresql://; SQLAlchemy needs the driver named."""
+        for plain in ("postgres://", "postgresql://"):
+            if url.startswith(plain):
+                return "postgresql+psycopg://" + url[len(plain):]
+        return url
 
     def has_api_key(self, provider: str) -> bool:
         return bool(getattr(self, f"{provider}_api_key"))

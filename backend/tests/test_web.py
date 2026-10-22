@@ -67,3 +67,18 @@ class TestNotBuilt:
             r = c.get("/")
             assert r.status_code == 503 and "npm run build" in r.text
             assert c.get("/api/health").json() == {"ok": True}
+
+
+class TestDatabaseUrl:
+    """A host gives postgres:// or postgresql://: the driver must be named for SQLAlchemy."""
+
+    @pytest.mark.parametrize("given, expected", [
+        ("postgres://u:p@h:5432/db", "postgresql+psycopg://u:p@h:5432/db"),
+        ("postgresql://u:p@h/db", "postgresql+psycopg://u:p@h/db"),
+        ("postgresql+psycopg://u:p@h/db", "postgresql+psycopg://u:p@h/db"),
+        ("sqlite://", "sqlite://"),
+        ("", ""),
+    ])
+    def test_the_driver_is_added_only_when_missing(self, given, expected):
+        from app.config import Settings
+        assert Settings(database_url=given, _env_file=None).database_url == expected
