@@ -13,3 +13,6 @@ frontend/test-results/
 .copilot-azure/
 .github/
 .vscode/
+
+# generator output
+generator/prev*.png
