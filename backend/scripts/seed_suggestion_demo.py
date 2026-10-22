@@ -38,7 +38,7 @@ from app.storage import get_storage  # noqa: E402
 WRONG = 'המרכז הרפואי ע"ש חיים שיבא - תל השומר'   # the hospital that printed the form, read as the sender
 RIGHT = "מאוחדת"                                  # the HMO whose logo is highlighted: the real sender
 PROVIDER = "demo (נתוני הדגמה)"
-PAGE = "p1_03"
+PAGE = "p1_01"   # an upright Meuhedet form whose printed provider is Sheba and whose highlighted sender is Meuhedet
 
 
 def earlier_form(n: int) -> RawExtraction:

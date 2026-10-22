@@ -57,11 +57,11 @@ export function Tabs<T extends string>({ value, onChange, items }: {
   )
 }
 
-/** "לבדיקה" for anything not verified, "מאומת" for high confidence. */
+/** "מאומת" for high confidence, a calm "לבדיקה קלה" for medium, an orange "לבדיקה" for low. */
 export function ConfidenceBadge({ level }: { level: Confidence }) {
-  return level === 'high'
-    ? <span className="shrink-0 rounded-full bg-ok-soft px-2 py-[2px] text-[11px] font-bold text-ok-ink">מאומת</span>
-    : <span className="shrink-0 rounded-full bg-warn px-2 py-[2px] text-[11px] font-bold text-white">לבדיקה</span>
+  if (level === 'high') return <span className="shrink-0 rounded-full bg-ok-soft px-2 py-[2px] text-[11px] font-bold text-ok-ink">מאומת</span>
+  if (level === 'medium') return <span className="shrink-0 rounded-full border border-mid-line bg-mid-soft px-2 py-[1px] text-[11px] font-bold text-mid-ink">לבדיקה קלה</span>
+  return <span className="shrink-0 rounded-full bg-warn px-2 py-[2px] text-[11px] font-bold text-white">לבדיקה</span>
 }
 
 /** Count pill used in lists: orange with the number of flagged fields, green check when clean. */

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { ApiError } from '../api/client'
 import { usePatchRecord } from '../api/hooks'
 import type { CommitmentRecord, Field, FieldChanges, Suggestion } from '../api/types'
-import { FIELD_DEFS, type FieldDef, displayValue, editValues, fieldsOf, flaggedCount, isFlagged, reasonText, recordTitle } from '../lib/fields'
+import { FIELD_DEFS, type FieldDef, type FlagLevel, displayValue, editValues, fieldsOf, flagLevel, flaggedCount, reasonText, recordTitle } from '../lib/fields'
 import { ConfidenceBadge, Icon } from './ui'
 
 /** What to save to say "this is right as it stands": the field's current values, unchanged. */
@@ -27,7 +27,9 @@ function SuggestionBox({ def, suggestion, recordId }: { def: FieldDef; suggestio
     <div role="group" aria-label={`הצעה ל${def.label}`}
       className="mt-1 rounded-[8px] border border-accent-line bg-accent-soft px-2.5 py-1.5 text-xs">
       <div className="font-semibold">
-        בטפסים קודמים{suggestion.sender ? ` מ${suggestion.sender}` : ''} תוקן {text(suggestion.current)} ל-{text(suggestion.suggested)}
+        {def.key === 'sender'
+          ? <>בטפסים קודמים נקרא הגורם {text(suggestion.current)} ותוקן ל-{text(suggestion.suggested)}</>
+          : <>בטפסים קודמים{suggestion.sender ? ` מ${suggestion.sender}` : ''} תוקן {text(suggestion.current)} ל-{text(suggestion.suggested)}</>}
       </div>
       <div className="text-sub">{suggestion.times} מתוך {suggestion.total} תיקונים קודמים של קריאה זו · ההצעה לא הוחלה</div>
       {apply.isError && <div role="alert" className="font-semibold text-warn-ink">ההחלה נכשלה</div>}
@@ -41,22 +43,29 @@ function SuggestionBox({ def, suggestion, recordId }: { def: FieldDef; suggestio
   )
 }
 
+const ROW_STYLE: Record<FlagLevel, string> = {
+  low: 'bg-warn-row shadow-[inset_-4px_0_0_var(--color-warn)]',
+  medium: 'bg-mid-row shadow-[inset_-4px_0_0_var(--color-mid-line)]',
+  ok: '',
+}
+
 function FieldRow({ def, record }: { def: FieldDef; record: CommitmentRecord }) {
   const fields = fieldsOf(record, def)
-  const flagged = fields.some(isFlagged)
+  const level = flagLevel(fields)
+  const flagged = level !== 'ok'
   const [editing, setEditing] = useState(false)
   const confirm = usePatchRecord(record.id)
   const suggestion = record.suggestions.find((s) => s.field === def.key)
 
   return (
-    <div className={`flex items-start gap-2 border-b border-[#eeeff1] px-4 py-2 ${flagged ? 'bg-warn-row shadow-[inset_-4px_0_0_var(--color-warn)]' : ''}`}
-      data-flagged={flagged}>
+    <div className={`flex items-start gap-2 border-b border-[#eeeff1] px-4 py-2 ${ROW_STYLE[level]}`}
+      data-flagged={flagged} data-level={level}>
       <div className="w-[66px] shrink-0 pt-[2px] text-xs text-sub">{def.label}</div>
       <div className="min-w-0 flex-1">
         <div className="flex items-start gap-2">
           {editing
             ? <FieldEditor def={def} record={record} fields={fields} onDone={() => setEditing(false)} />
-            : <ReadOnlyValue def={def} fields={fields} flagged={flagged} onEdit={() => setEditing(true)}
+            : <ReadOnlyValue def={def} fields={fields} level={level} onEdit={() => setEditing(true)}
                 onConfirm={() => confirm.mutate(currentValues(def, fields))} confirming={confirm.isPending}
                 error={confirm.error instanceof ApiError ? confirm.error.message : confirm.error ? 'השמירה נכשלה' : null} />}
         </div>
@@ -66,8 +75,8 @@ function FieldRow({ def, record }: { def: FieldDef; record: CommitmentRecord }) 
   )
 }
 
-function ReadOnlyValue({ def, fields, flagged, onEdit, onConfirm, confirming, error }: {
-  def: FieldDef; fields: Field[]; flagged: boolean; onEdit: () => void
+function ReadOnlyValue({ def, fields, level, onEdit, onConfirm, confirming, error }: {
+  def: FieldDef; fields: Field[]; level: FlagLevel; onEdit: () => void
   onConfirm: () => void; confirming: boolean; error: string | null
 }) {
   const text = displayValue(def, fields)
@@ -85,7 +94,7 @@ function ReadOnlyValue({ def, fields, flagged, onEdit, onConfirm, confirming, er
         {reason && <div className="text-[11.5px] leading-[1.3] text-sub">{reason}</div>}
         {error && <div role="alert" className="text-[11.5px] font-semibold text-warn-ink">{error}</div>}
       </button>
-      {flagged
+      {level !== 'ok'
         ? (
           <div className="flex shrink-0 items-center gap-1.5">
             <button type="button" onClick={onConfirm} disabled={confirming}
@@ -94,7 +103,7 @@ function ReadOnlyValue({ def, fields, flagged, onEdit, onConfirm, confirming, er
               className="flex h-6 w-6 items-center justify-center rounded-full border border-accent-line bg-accent-soft text-accent">
               <Icon name="check" size={14} />
             </button>
-            <ConfidenceBadge level="low" />
+            <ConfidenceBadge level={level === 'low' ? 'low' : 'medium'} />
           </div>
         )
         : <ConfidenceBadge level="high" />}
@@ -160,6 +169,10 @@ export function FieldsPanel({ record, onApprove, approving, approveError, onNext
 }) {
   const flagged = flaggedCount(record)
   const approved = record.status === 'approved'
+  const confirmAll = usePatchRecord(record.id)
+  // fields read from print that nothing could verify: one look, one click, instead of one click each
+  const probable = FIELD_DEFS.filter((def) => flagLevel(fieldsOf(record, def)) === 'medium')
+  const confirmProbable = () => confirmAll.mutate(Object.assign({}, ...probable.map((def) => currentValues(def, fieldsOf(record, def)))))
   return (
     <section aria-label="שדות הטופס" className="flex w-[316px] shrink-0 flex-col overflow-hidden border-s border-edge bg-surface">
       <div className="flex items-center justify-between border-b border-edge px-4 py-2.5">
@@ -176,6 +189,15 @@ export function FieldsPanel({ record, onApprove, approving, approveError, onNext
           {record.duplicate_warnings.map((w) => <div key={w}>{w}</div>)}
         </div>
       )}
+
+      {probable.length > 0 && (
+        <div className="flex items-center justify-between gap-2 border-b border-mid-line bg-mid-soft px-4 py-2 text-xs text-mid-ink">
+          <span>{probable.length} שדות נקראו בבירור אך לא אומתו</span>
+          <button type="button" onClick={confirmProbable} disabled={confirmAll.isPending}
+            className="shrink-0 rounded-[7px] border border-mid-line bg-surface px-2.5 py-[3px] text-xs font-semibold text-mid-ink">אשרי את כולם</button>
+        </div>
+      )}
+      {confirmAll.isError && <div role="alert" className="border-b border-warn-line bg-warn-soft px-4 py-1.5 text-xs font-semibold text-warn-ink">האישור נכשל</div>}
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {FIELD_DEFS.map((def) => <FieldRow key={def.key + record.id} def={def} record={record} />)}

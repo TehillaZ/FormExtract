@@ -200,6 +200,12 @@ describe('FieldsPanel: approving', () => {
       expect(api.called('PATCH', '/records/a')).toHaveLength(0)
     })
 
+    it('words a sender suggestion as a different reading, not as "from" the very sender in question', async () => {
+      installFakeApi([makeRecord('a', { suggestions: [{ ...suggestion, field: 'sender', current: 'שיבא', suggested: 'מאוחדת', sender: 'שיבא' }] })])
+      renderWithClient(<Harness id="a" />)
+      expect(await screen.findByRole('group', { name: 'הצעה לגורם שולח' })).toHaveTextContent('בטפסים קודמים נקרא הגורם שיבא ותוקן ל-מאוחדת')
+    })
+
     it('applies it only when the user says so', async () => {
       const api = installFakeApi([withSuggestion()])
       renderWithClient(<Harness id="a" />)
@@ -216,6 +222,48 @@ describe('FieldsPanel: approving', () => {
       await userEvent.setup().click(screen.getByRole('button', { name: 'התעלמי' }))
       expect(screen.queryByRole('group', { name: 'הצעה למספר מרכזי' })).not.toBeInTheDocument()
       expect(api.called('PATCH', '/records/a')).toHaveLength(0)
+    })
+  })
+
+  describe('doubtful and probable fields', () => {
+    const record = () => makeRecord('a', {
+      first_name: field('דנה', 'medium'),                               // printed, nothing verified it
+      last_name: field('כהן', 'medium'),
+      central_numbers: [field('939376', 'low', ['כתב יד'])],             // handwriting: doubtful
+    })
+    const levelOf = (label: string) => rowOf(label).dataset.level
+
+    it('shows a field that was read from print more calmly than a doubtful one, and both still need a look', async () => {
+      installFakeApi([record()])
+      renderWithClient(<Harness id="a" />)
+      await screen.findByText('דנה')
+      expect(levelOf('שם פרטי')).toBe('medium')
+      expect(levelOf('מספר מרכזי')).toBe('low')
+      expect(levelOf('ת"ז')).toBe('ok')
+      expect(isFlagged('שם פרטי') && isFlagged('מספר מרכזי')).toBe(true)
+      expect(within(rowOf('שם פרטי')).getByText('לבדיקה קלה')).toBeInTheDocument()
+      expect(within(rowOf('מספר מרכזי')).getByText('לבדיקה')).toBeInTheDocument()
+    })
+
+    it('confirms every probable field with one click and leaves the doubtful one alone', async () => {
+      const api = installFakeApi([record()])
+      renderWithClient(<Harness id="a" />)
+      await screen.findByText('דנה')
+      expect(screen.getByText('2 שדות נקראו בבירור אך לא אומתו')).toBeInTheDocument()
+      await userEvent.setup().click(screen.getByRole('button', { name: 'אשרי את כולם' }))
+
+      await waitFor(() => expect(api.called('PATCH', '/records/a')).toHaveLength(1))
+      expect(api.called('PATCH', '/records/a')[0].body).toEqual({ first_name: 'דנה', last_name: 'כהן' })
+      await waitFor(() => expect(levelOf('שם פרטי')).toBe('ok'))
+      expect(levelOf('מספר מרכזי')).toBe('low')
+      expect(screen.queryByRole('button', { name: 'אשרי את כולם' })).not.toBeInTheDocument()
+    })
+
+    it('offers nothing to confirm in bulk when every flagged field is doubtful', async () => {
+      installFakeApi([flaggedRecord('a', 'רונן')])
+      renderWithClient(<Harness id="a" />)
+      await screen.findByText('רונן')
+      expect(screen.queryByRole('button', { name: 'אשרי את כולם' })).not.toBeInTheDocument()
     })
   })
 })

@@ -65,7 +65,7 @@ function WaitingScreen({ records, pending = [], page, onSelect }: Props & { page
         onToggle={() => setListOpen((o) => !o)} filter={filter} onFilter={setFilter} />
       <div className="relative flex min-w-0 flex-1 bg-stage">
         <ViewToolbar view={view} />
-        <div className="min-h-0 flex-1 p-3">
+        <div className="min-h-0 min-w-0 flex-1 p-3">
           <ImageCanvas pageId={page.id} view={view} />
         </div>
       </div>
@@ -169,7 +169,7 @@ function ReviewScreen({ records, pending = [], record, onSelect }: Props & { rec
             <kbd>↑</kbd><kbd>↓</kbd> טפסים · <kbd>N</kbd> הבא לבדיקה · <kbd>A</kbd> אישור (כשאין שדות לבדיקה) · <kbd>L</kbd> רשימה
           </div>
         </div>
-        <div className="min-h-0 flex-1 p-3">
+        <div className="min-h-0 min-w-0 flex-1 p-3">
           <ImageCanvas pageId={record.page_ids[0]} view={view} onPercent={setPercent} />
         </div>
       </div>

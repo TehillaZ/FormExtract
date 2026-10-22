@@ -28,6 +28,14 @@ export function fieldsOf(rec: CommitmentRecord, def: FieldDef): Field[] {
 
 export const isFlagged = (f: Field) => f.confidence !== 'high'
 
+/** How loudly a field is flagged: 'low' (doubtful: handwriting, a failed check, a missing value) is orange, 'medium'
+ *  (read from print but nothing could verify it) is a calmer yellow. Both still need a person; 'high' needs nothing. */
+export type FlagLevel = 'low' | 'medium' | 'ok'
+export function flagLevel(fields: Field[]): FlagLevel {
+  if (fields.some((f) => f.confidence === 'low')) return 'low'
+  return fields.some(isFlagged) ? 'medium' : 'ok'
+}
+
 export function flaggedCount(rec: CommitmentRecord): number {
   return FIELD_DEFS.flatMap((d) => fieldsOf(rec, d)).filter(isFlagged).length
 }
