@@ -153,7 +153,7 @@ Learned from the samples rather than the task text (PLAN ADR-013):
 - If an institution sent the patient (hospital, lab, IDF…), it is the sender; otherwise the HMO.
 - If a stamp date and a handwritten date differ, the stamp wins and the field is flagged with both values.
 - Sample IDs are fake and many fail the check digit (13 of 48 have 8 or 10 digits). Flagging them is correct.
-- The yellow highlight marks the wanted value, so the model reports `highlighted` and a highlighted candidate wins. This helps on the samples and does nothing on unmarked forms.
+- Yellow highlights are not relied on (real forms may not have them). The model extracts by content and context: labels such as "התחייבות", "דרישה", "דגימה", "מרכזי" and the position on the form. When a highlight exists it only raises confidence and breaks ties; it is never a condition (PLAN ADR-021).
 
 ## Known limitations
 

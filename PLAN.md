@@ -373,7 +373,7 @@ Not yet measured: the test set, `gemini-3.5-flash` and the lite models on enough
 - **Hospital-system screenshots:** treated as a form type, since they are in the lab's samples.
 - **A 6-digit central number with a barcode:** learned from the samples, it is not written in the PDF.
 - **"דרישה" / "דגימה" / "אסמכתא":** the PDF says "דרישה" in general and "דגימה" for Leumit. The assignment to other templates (for example Maccabi, Rambam) and "אסמכתא" were learned from the samples.
-- **Highlighted values:** the model reports which values are covered by a yellow marker. When candidates compete, the highlighted one wins. This helps on the samples, and does nothing on unmarked forms.
+- **Highlighted values:** the model reports which values are covered by a yellow marker, but extraction must not depend on it (ADR-021). A highlight raises confidence or breaks a tie between candidates; it is not a condition.
 - **Barcode match:** a barcode match proves a number is on the page, not that it is the wanted one. With competing candidates, an unhighlighted barcode match is only medium.
 
 ### ADR-014: ID check digit
@@ -430,6 +430,11 @@ Not yet measured: the test set, `gemini-3.5-flash` and the lite models on enough
 - Consequences: the seeded forms show what the models said at the time, not a fresh run. Anyone presenting them should say so. The table starts with every form needing review, which is true.
 
 ---
+
+### ADR-021: Highlights are a hint, not a requirement
+- Context: the sample forms carry yellow highlights on the wanted values, but real forms are not guaranteed to have them.
+- Decision: the system extracts by content and context: labels ("התחייבות", "דרישה", "דגימה", "מרכזי"), the sender field and the position on the form. The prompt says so explicitly. When a highlight exists it may raise confidence (corroborating an ID, keeping a sender high against rivals) and break ties between competing candidates; its absence never excludes a value.
+- Consequences: the prompt changed, so evaluation caches start fresh (the cache name includes the prompt fingerprint) and earlier accuracy numbers do not carry over. The "highlight removal" mode (section 9, item 4) is the way to measure accuracy without the marker. Because ADR-019 still counts a highlight as corroboration, unmarked forms get more "medium" and fewer "high" values, which sends them to a person.
 
 ## 13. Open questions
 
