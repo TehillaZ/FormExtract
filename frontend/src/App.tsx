@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useRecords } from './api/hooks'
+import { useActivePages, useRecords } from './api/hooks'
 import { AccuracyView } from './components/AccuracyView'
 import { CorrectionsView } from './components/CorrectionsView'
 import { FormView } from './components/FormView'
@@ -15,6 +15,7 @@ export default function App() {
   const [view, setView] = useState<View>('table')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const { data: records = [], isLoading, error } = useRecords()
+  const { data: unread = [] } = useActivePages()
 
   const open = (id: string) => { setSelectedId(id); setView('form') }
   const pending = records.filter((r) => r.status === 'pending')
@@ -45,13 +46,13 @@ export default function App() {
         ) : isLoading ? (
           <div className="m-auto text-sub">טוען…</div>
         ) : view === 'upload' ? (
-          <div className="min-h-0 flex-1 overflow-y-auto"><UploadView onReview={() => setView('table')} /></div>
+          <div className="min-h-0 flex-1 overflow-y-auto"><UploadView onReview={() => setView('table')} onUploaded={open} /></div>
         ) : view === 'table' ? (
           <TableView records={records} onOpen={open} />
         ) : view === 'records' ? (
           <RecordsView onOpen={open} />
         ) : (
-          <FormView records={records} selectedId={selectedId} onSelect={setSelectedId} />
+          <FormView records={records} pending={unread} selectedId={selectedId} onSelect={setSelectedId} />
         )}
       </main>
     </div>

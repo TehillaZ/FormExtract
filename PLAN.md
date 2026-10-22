@@ -448,6 +448,12 @@ Not yet measured: the test set, `gemini-3.5-flash` and the lite models on enough
 - Not suggested: fields a person already looked at (source manual), empty readings, approved records, and the record's own corrections. Ignoring a suggestion is not remembered between sessions.
 - Consequences: the system learns but never changes a value by itself, so a wrong habit cannot spread unnoticed. The thresholds are constants in `db/repo.py`. Matching is by the exact reading, so it helps with repeated identical misreads (a sender spelled the same odd way, a recurring number), not with random digit errors.
 
+### ADR-024: The form is shown before its fields are read
+- Context: reading a page takes about a minute (the model call). Until then nothing appeared in the review screen, because a form existed there only as a record.
+- Decision: processing already ran in the background (ADR-005); now its first, local steps (turn a sideways page, enhance) store the viewable image before the model is asked. `GET /pages/active` lists pages that have no record yet (waiting, being read, failed). The form list shows them at the top, and opening one shows the image next to placeholder fields ("reading the fields…"), or a retry button on failure. After an upload the interface opens the first new page in the form tab at once. When a page finishes, its record replaces it and the screen follows the page to its record.
+- Orientation: sideways pages are turned locally before the image is shown. An upside-down page is only recognised by the model's answer (ADR-009); the turned image is stored before the second call, so the reviewer sees it upright without waiting for it, and the original is restored if the flip is rejected. The image URL answers `no-cache` so a corrected image replaces the old one.
+- Consequences: an upside-down page may show upside down for the length of the first model call. A local upside-down detector (for example Tesseract OSD) would remove that wait and the second model call; it is not built.
+
 ## 13. Open questions
 
 ### Technical

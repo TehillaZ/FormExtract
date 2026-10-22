@@ -85,6 +85,27 @@ describe('UploadView', () => {
     expect(onReview).toHaveBeenCalled()
   })
 
+  it('tells the page which form to show as soon as the upload is accepted, before any field is read', async () => {
+    const onUploaded = vi.fn()
+    const api = installFakeApi()
+    const doc = makeDocument('d1', [pageStatus('p1', 1, 'processing')], { done: false })
+    api.uploadResult = [doc]
+    api.documents.d1 = doc
+    renderWithClient(<UploadView onReview={() => {}} onUploaded={onUploaded} />)
+    await upload(pdf())
+    await waitFor(() => expect(onUploaded).toHaveBeenCalledWith('p1'))
+  })
+
+  it('does not jump to a file that was uploaded before', async () => {
+    const onUploaded = vi.fn()
+    const api = installFakeApi()
+    api.uploadResult = [makeDocument('d1', [pageStatus('p1', 1, 'ready', 'r1')], { duplicate: true })]
+    renderWithClient(<UploadView onReview={() => {}} onUploaded={onUploaded} />)
+    await upload(pdf())
+    await screen.findByText(/כבר הועלה בעבר/)
+    expect(onUploaded).not.toHaveBeenCalled()
+  })
+
   it('refreshes the records once a document has finished', async () => {
     const api = installFakeApi()
     const doc = makeDocument('d1', [pageStatus('p1', 1, 'ready', 'r1')])

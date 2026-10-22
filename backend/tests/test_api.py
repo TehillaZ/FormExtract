@@ -224,3 +224,43 @@ def test_a_document_without_pages_is_not_done():
     from app.db.models import Document
     status = DocumentStatus.of(Document(id=uuid.uuid4(), filename="x.png", file_hash="h", pages=[]))
     assert status.pages == [] and status.done is False
+
+
+# ---- the form is visible before the fields are read ---------------------------------------------------------
+
+class SeesTheFormFirst(FakeProvider):
+    """While the model is still working, the page must already have an enhanced image and be in progress."""
+    seen = None
+
+    async def extract(self, img, hint=""):
+        with session_mod.session_scope() as s:
+            page = s.query(Page).one()
+            self.seen = (page.status, page.record_id, page.image_path)
+        return await super().extract(img, hint)
+
+
+def test_the_page_image_is_stored_before_the_model_is_asked(client):
+    provider = SeesTheFormFirst()
+    app.state.providers = (provider, None)
+    upload(client)
+    status, record_id, image_path = provider.seen
+    assert (status, record_id) == ("processing", None) and image_path.endswith("_enhanced.png")
+    assert client.get("/pages/active").json() == []     # a finished page is a record, not "active"
+
+
+def test_a_page_in_progress_is_listed_with_its_image(client):
+    with session_mod._factory() as s:
+        from app.db.models import Document
+        doc = Document(filename="a.png", file_hash="x")
+        doc.pages.append(Page(page_number=1, status="processing", original_path="o.png"))
+        s.add(doc)
+        s.commit()
+    [p] = client.get("/pages/active").json()
+    assert (p["status"], p["filename"], p["page_number"]) == ("processing", "a.png", 1)
+
+
+def test_a_failed_page_stays_in_the_active_list_so_it_can_be_retried(client):
+    app.state.providers = (FakeProvider(fail=RuntimeError("boom")), None)
+    upload(client)
+    [p] = client.get("/pages/active").json()
+    assert p["status"] == "error" and p["error"] == "RuntimeError"

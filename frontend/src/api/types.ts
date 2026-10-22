@@ -47,6 +47,16 @@ export interface Suggestion {
   examples: { old: string | null; new: string | null; at: string }[]
 }
 
+/** A page that has no record yet: waiting, being read, or failed. Its image can already be viewed. */
+export interface ActivePage {
+  id: string
+  document_id: string
+  filename: string
+  page_number: number
+  status: 'pending' | 'processing' | 'error'
+  error: string | null
+}
+
 export interface PageStatus {
   id: string
   page_number: number

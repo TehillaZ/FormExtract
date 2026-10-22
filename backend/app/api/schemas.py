@@ -35,6 +35,16 @@ class DocumentStatus(BaseModel):
                               record_id=p.record_id) for p in pages])
 
 
+class ActivePage(BaseModel):
+    """A page that has no record yet: waiting, being read, or failed. The form can already be viewed."""
+    id: uuid.UUID
+    document_id: uuid.UUID
+    filename: str
+    page_number: int
+    status: str            # pending | processing | error
+    error: str | None = None
+
+
 class ApproveCleanResult(BaseModel):
     approved: list[uuid.UUID]
     skipped_duplicates: list[uuid.UUID]

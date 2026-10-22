@@ -1,5 +1,5 @@
 import { vi } from 'vitest'
-import type { CommitmentRecord, CorrectionGroup, DocumentStatus, EvaluationOverview, Field } from '../api/types'
+import type { ActivePage, CommitmentRecord, CorrectionGroup, DocumentStatus, EvaluationOverview, Field } from '../api/types'
 import { FIELD_DEFS, displayValue, fieldsOf } from '../lib/fields'
 import { field } from './factories'
 
@@ -20,6 +20,7 @@ export interface FakeApi {
   senders: string[]
   evaluation: EvaluationOverview
   corrections: CorrectionGroup[]
+  active: ActivePage[]            // pages uploaded but not read yet
   called: (method: string, pathPart: string) => Call[]
 }
 
@@ -76,7 +77,7 @@ const normalise = (key: string) => (v: string) => {
 export function installFakeApi(initial: CommitmentRecord[] = []): FakeApi {
   const api: FakeApi = {
     records: structuredClone(initial), documents: {}, uploadResult: [], calls: [], patchError: null, approveError: null, uploadError: null,
-    senders: ['כללית', 'מכבי', 'מאוחדת', 'לאומית'], evaluation: { reports: [], pages: 0, dev_pages: 0, test_pages: 0 }, corrections: [],
+    senders: ['כללית', 'מכבי', 'מאוחדת', 'לאומית'], evaluation: { reports: [], pages: 0, dev_pages: 0, test_pages: 0 }, corrections: [], active: [],
     called: (method, part) => api.calls.filter((c) => c.method === method && c.path.includes(part)),
   }
   const replace = (rec: CommitmentRecord) => { api.records = api.records.map((r) => (r.id === rec.id ? rec : r)) }
@@ -90,6 +91,7 @@ export function installFakeApi(initial: CommitmentRecord[] = []): FakeApi {
     if (method === 'GET' && path.startsWith('/records?')) return listRecords(api.records, new URL(path, 'http://x').searchParams)
     if (method === 'GET' && path === '/senders') return json(api.senders)
     if (method === 'GET' && path === '/evaluation') return json(api.evaluation)
+    if (method === 'GET' && path === '/pages/active') return json(api.active)
     if (method === 'GET' && path === '/corrections/summary') return json(api.corrections)
     if (method === 'POST' && path === '/records/approve-clean') {
       const clean = api.records.filter((r) => r.status === 'pending' && r.id && !hasFlag(r))

@@ -277,3 +277,48 @@ describe('FormView: keyboard shortcuts', () => {
     })
   })
 })
+
+describe('FormView: forms that are uploaded but not read yet', () => {
+  const waiting = (over = {}) => ({
+    id: 'p1', document_id: 'd1', filename: 'scan.pdf', page_number: 1, status: 'processing' as const, error: null, ...over,
+  })
+
+  function WithPending({ pending, records, start }: { pending: ReturnType<typeof waiting>[]; records: ReturnType<typeof forms>; start: string | null }) {
+    const [selected, setSelected] = useState<string | null>(start)
+    return <div className="flex h-96"><FormView records={records} pending={pending} selectedId={selected} onSelect={setSelected} /></div>
+  }
+
+  it('shows the form image at once, with the fields still empty and a note that they are being read', () => {
+    installFakeApi([])
+    renderWithClient(<WithPending pending={[waiting()]} records={[]} start="p1" />)
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('scan.pdf · עמוד 1')
+    expect(screen.getByRole('status')).toHaveTextContent('קורא את השדות')
+    expect(document.querySelector('img[src="/api/pages/p1/image"]')).toBeInTheDocument()
+  })
+
+  it('lists it among the other forms and lets the user move to it and back', async () => {
+    installFakeApi(forms())
+    renderWithClient(<WithPending pending={[waiting()]} records={forms()} start="a" />)
+    await screen.findByRole('heading', { name: /דנה כהן/ })
+    await userEvent.setup().click(screen.getByRole('button', { name: /scan\.pdf · עמוד 1/ }))
+    expect(screen.getByRole('status')).toBeInTheDocument()
+    await userEvent.setup().click(screen.getByRole('button', { name: /דנה כהן/ }))
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it('opens the finished record where the page was selected', async () => {
+    installFakeApi(forms())
+    const records = [{ ...makeRecord('r9'), page_ids: ['p1'] }]
+    renderWithClient(<WithPending pending={[]} records={records} start="p1" />)
+    expect(await screen.findByRole('heading', { name: /דנה כהן/ })).toBeInTheDocument()
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it('offers a retry when reading failed', async () => {
+    const api = installFakeApi([])
+    renderWithClient(<WithPending pending={[waiting({ status: 'error', error: 'RateLimited' })]} records={[]} start="p1" />)
+    expect(screen.getByRole('alert')).toHaveTextContent('RateLimited')
+    await userEvent.setup().click(screen.getByRole('button', { name: 'נסי שוב' }))
+    await waitFor(() => expect(api.called('POST', '/pages/p1/reprocess')).toHaveLength(1))
+  })
+})

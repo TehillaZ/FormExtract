@@ -1,12 +1,14 @@
+import { useEffect, useRef } from 'react'
 import { type QueryClient, keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type RecordFilters, recordQuery } from '../lib/recordQuery'
 import { api, apiWithTotal, jsonBody } from './client'
 import type {
-  ApproveCleanResult, CommitmentRecord, CorrectionGroup, DocumentStatus, EvaluationOverview, FieldChanges, PageStatus,
+  ActivePage, ApproveCleanResult, CommitmentRecord, CorrectionGroup, DocumentStatus, EvaluationOverview, FieldChanges, PageStatus,
 } from './types'
 
 const RECORDS = ['records'] as const
 const RECORDS_PAGE = ['records-page'] as const
+const ACTIVE = ['active-pages'] as const
 
 /** The records screen keeps its own pages of results; any change to a record makes them stale. */
 const refreshRecordsScreen = (qc: QueryClient) => qc.invalidateQueries({ queryKey: RECORDS_PAGE })
@@ -46,8 +48,31 @@ export function useDocument(id: string) {
   })
 }
 
+/** Pages that are not records yet. Polls while any is being read, and when one finishes its record is fetched. */
+export function useActivePages() {
+  const qc = useQueryClient()
+  const query = useQuery({
+    queryKey: ACTIVE,
+    queryFn: () => api<ActivePage[]>('/pages/active'),
+    refetchInterval: (q) => (q.state.data?.some((p) => p.status !== 'error') ? 2000 : false),
+  })
+  const before = useRef<string[]>([])
+  useEffect(() => {
+    if (!query.data) return
+    const now = query.data.map((p) => p.id)
+    if (before.current.some((id) => !now.includes(id))) {   // a page left the list: it became a record, or was removed
+      void qc.invalidateQueries({ queryKey: RECORDS })
+      void refreshRecordsScreen(qc)
+    }
+    before.current = now
+  }, [query.data, qc])
+  return query
+}
+
 export function useUpload() {
+  const qc = useQueryClient()
   return useMutation({
+    onSuccess: () => qc.invalidateQueries({ queryKey: ACTIVE }),   // the new pages show up in the form list at once
     mutationFn: (files: File[]) => {
       const form = new FormData()
       files.forEach((f) => form.append('files', f))
@@ -60,7 +85,7 @@ export function useReprocess() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (pageId: string) => api<PageStatus>(`/pages/${pageId}/reprocess`, { method: 'POST' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['document'] }),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['document'] }); void qc.invalidateQueries({ queryKey: ACTIVE }) },
   })
 }
 

@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -49,16 +50,22 @@ async def extract_with_fallback(img, primary: VisionProvider, fallback: VisionPr
         return await fallback.extract(img), fallback.name
 
 
-async def extract_oriented(img: np.ndarray, primary: VisionProvider, fallback: VisionProvider | None
+async def extract_oriented(img: np.ndarray, primary: VisionProvider, fallback: VisionProvider | None,
+                           on_flip: Callable[[np.ndarray], None] | None = None
                            ) -> tuple[RawExtraction, str, np.ndarray]:
     """Extract once. If the model says the text is upside down, flip the page and extract once more (ADR-009).
-    If the flipped page is also called upside down, the flag is unreliable here: keep the first answer."""
+    If the flipped page is also called upside down, the flag is unreliable here: keep the first answer.
+    `on_flip` gets the turned page before the second call, so the reviewer sees it upright without waiting for it."""
     raw, name = await extract_with_fallback(img, primary, fallback)
     if not raw.text_upside_down:
         return raw, name, img
     flipped = flip_180(img)
+    if on_flip:
+        on_flip(flipped)
     raw_flipped, name_flipped = await extract_with_fallback(flipped, primary, fallback)
     if raw_flipped.text_upside_down:
+        if on_flip:
+            on_flip(img)   # the flag was unreliable: show the original again
         return raw, name, img
     return raw_flipped, name_flipped, flipped
 
@@ -83,6 +90,15 @@ def _claim(page_id: uuid.UUID) -> _PageJob | None:
         s.commit()
         return _PageJob(page_id, page.document_id, page.page_number, page.original_path,
                         is_photo=Path(page.document.filename).suffix.lower() in PHOTO_EXTS)
+
+
+def _show_image(page_id: uuid.UUID, image_path: str) -> None:
+    """Make the page viewable now, before the slow model call: the reviewer sees the form while fields are read."""
+    with session_scope() as s:
+        page = s.get(Page, page_id)
+        if page is not None:
+            page.image_path = image_path
+            s.commit()
 
 
 def _store_success(job: _PageJob, rec, raw: RawExtraction, enhanced_path: str, barcodes: list[str]) -> None:
@@ -113,8 +129,11 @@ async def process_page(page_id: uuid.UUID, providers: Providers | None = None) -
         original = storage.read_image(job.original_path)
         upright, _ = correct_quarter_turn(original)   # sideways scans are common; upside down is left to the model
         pre = preprocess(upright, is_photo=job.is_photo)
-        raw, provider_name, final = await extract_oriented(pre.image, primary, fallback)
-        enhanced = storage.save_image(f"{job.document_id}/{job.number}_enhanced.png", final)   # what the reviewer sees
+        enhanced_name = f"{job.document_id}/{job.number}_enhanced.png"
+        _show_image(page_id, storage.save_image(enhanced_name, pre.image))
+        raw, provider_name, final = await extract_oriented(
+            pre.image, primary, fallback, on_flip=lambda turned: storage.save_image(enhanced_name, turned))
+        enhanced = storage.save_image(enhanced_name, final)   # what the reviewer sees
         barcodes = sorted({b.text for b in decode_barcodes(final)} | {b.text for b in decode_barcodes(original)})
         rec = build_record(raw, barcodes, low_quality=pre.low_quality, provider=provider_name, page_number=job.number)
         _store_success(job, rec, raw, enhanced, barcodes)

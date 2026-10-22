@@ -46,3 +46,16 @@ async def test_if_both_orientations_look_upside_down_keep_the_original():
     raw, _, final = await extract_oriented(marked_page(), provider, None)
     assert provider.calls == 2 and raw.text_upside_down
     assert final[0, 0, 0] == 255       # the flag is unreliable for this page: nothing was flipped
+
+
+async def test_the_turned_page_is_shown_before_the_second_call_finishes():
+    shown = []
+    provider = ScriptedProvider(True, False)
+    await extract_oriented(marked_page(), provider, None, on_flip=lambda img: shown.append(img[-1, 0, 0]))
+    assert shown == [255]              # the marker is at the bottom: the reviewer sees the page upright
+
+
+async def test_when_the_flip_is_rejected_the_original_is_shown_again():
+    shown = []
+    await extract_oriented(marked_page(), ScriptedProvider(True, True), None, on_flip=lambda img: shown.append(img[0, 0, 0]))
+    assert shown == [0, 255]           # first the flipped page, then the original back

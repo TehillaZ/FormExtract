@@ -6,12 +6,13 @@ from contextlib import asynccontextmanager
 from datetime import date, datetime
 from typing import Annotated, Any, Literal
 
+import sqlalchemy as sa
 from fastapi import BackgroundTasks, Depends, FastAPI, File, HTTPException, Query, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from app.api.schemas import ApproveCleanResult, CorrectionGroup, DocumentStatus, EvaluationOverview, PageStatus
+from app.api.schemas import ActivePage, ApproveCleanResult, CorrectionGroup, DocumentStatus, EvaluationOverview, PageStatus
 from app.db import repo
 from app.db.models import Document, Page
 from app.db.session import get_session, init_db, is_initialized
@@ -90,6 +91,17 @@ def document_status(document_id: uuid.UUID, db: DB):
     return DocumentStatus.of(doc)
 
 
+@app.get("/pages/active", response_model=list[ActivePage])
+def active_pages(db: DB):
+    """Pages still to become records, oldest first. The review screen shows them at once, with the image."""
+    rows = db.execute(
+        sa.select(Page, Document.filename).join(Document, Page.document_id == Document.id)
+        .where(Page.record_id.is_(None), Page.status.in_(("pending", "processing", "error")))
+        .order_by(Document.created_at, Page.page_number))
+    return [ActivePage(id=p.id, document_id=p.document_id, filename=name, page_number=p.page_number,
+                       status=p.status, error=p.error) for p, name in rows]
+
+
 @app.post("/pages/{page_id}/reprocess", response_model=PageStatus, status_code=202)
 def reprocess(page_id: uuid.UUID, background: BackgroundTasks, db: DB):
     """Retry a page that failed (a crash or a rate limit). A page that already produced a record is refused:
@@ -113,7 +125,8 @@ def page_image(page_id: uuid.UUID, db: DB, original: bool = False):
     path = page and (page.original_path if original or not page.image_path else page.image_path)
     if not path:
         raise HTTPException(404, "התמונה לא נמצאה")
-    return FileResponse(get_storage().abspath(path), media_type="image/png")
+    # no-cache: the same URL shows the corrected image once the page has been turned or enhanced
+    return FileResponse(get_storage().abspath(path), media_type="image/png", headers={"Cache-Control": "no-cache"})
 
 
 # ---- records ------------------------------------------------------------------------------------

@@ -52,7 +52,7 @@ function DocumentCard({ initial, onSettled }: { initial: DocumentStatus; onSettl
 }
 
 /** Drag-and-drop upload and the processing status of every file (PLAN 4.1). */
-export function UploadView({ onReview }: { onReview: () => void }) {
+export function UploadView({ onReview, onUploaded }: { onReview: () => void; onUploaded?: (pageId: string) => void }) {
   const upload = useUpload()
   const qc = useQueryClient()
   const input = useRef<HTMLInputElement>(null)
@@ -62,7 +62,14 @@ export function UploadView({ onReview }: { onReview: () => void }) {
   const send = (files: FileList | File[]) => {
     const list = Array.from(files)
     if (!list.length) return
-    upload.mutate(list, { onSuccess: (created) => setDocs((d) => [...created, ...d]) })
+    upload.mutate(list, {
+      onSuccess: (created) => {
+        setDocs((d) => [...created, ...d])
+        // the form can be viewed as soon as it is uploaded, while its fields are still being read
+        const first = created.find((d) => !d.duplicate)?.pages[0]
+        if (first) onUploaded?.(first.id)
+      },
+    })
   }
   const error = upload.error instanceof ApiError ? upload.error.message : upload.error ? 'ההעלאה נכשלה' : null
 

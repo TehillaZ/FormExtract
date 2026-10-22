@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ApiError } from '../api/client'
-import { useApproveRecord } from '../api/hooks'
-import type { CommitmentRecord } from '../api/types'
+import { useApproveRecord, useReprocess } from '../api/hooks'
+import type { ActivePage, CommitmentRecord } from '../api/types'
+import { FIELD_DEFS } from '../lib/fields'
 import { type ListFilter, filterRecords, flaggedCount, nextToReview } from '../lib/fields'
 import { useShortcuts } from '../lib/useShortcuts'
 import { ExpandedViewer } from './ExpandedViewer'
@@ -32,21 +33,72 @@ function useStoredFlag(key: string, initial: boolean) {
 
 interface Props {
   records: CommitmentRecord[]
+  pending?: ActivePage[]       // pages still being read: their image is already viewable
   selectedId: string | null
   onSelect: (id: string) => void
 }
 
 /** The review screen. With no forms there is nothing to review: say how to get some. */
 export function FormView(props: Props) {
-  const record = props.records.find((r) => r.id === props.selectedId) ?? props.records[0]
-  if (!record) {
-    return <div className="m-auto text-sub">אין טפסים עדיין. אפשר להעלות קבצים בלשונית "העלאה".</div>
-  }
-  return <ReviewScreen {...props} record={record} />
+  const { records, pending = [], selectedId } = props
+  // the selection is a record, or a page that has not become one yet (a page's record then takes its place)
+  const record = records.find((r) => r.id === selectedId || (!!selectedId && r.page_ids.includes(selectedId)))
+  const waiting = pending.find((p) => p.id === selectedId)
+  if (record) return <ReviewScreen {...props} pending={pending} record={record} />
+  if (waiting) return <WaitingScreen {...props} pending={pending} page={waiting} />
+  if (records[0]) return <ReviewScreen {...props} pending={pending} record={records[0]} />
+  if (pending[0]) return <WaitingScreen {...props} pending={pending} page={pending[0]} />
+  return <div className="m-auto text-sub">אין טפסים עדיין. אפשר להעלות קבצים בלשונית "העלאה".</div>
+}
+
+/** A form that is uploaded but not read yet: the image is there to look at while the fields are being filled in. */
+function WaitingScreen({ records, pending = [], page, onSelect }: Props & { page: ActivePage }) {
+  const [listOpen, setListOpen] = useStoredFlag(OPEN_KEY, true)
+  const [filter, setFilter] = useState<ListFilter>('all')
+  const reprocess = useReprocess()
+  const view = useImageView(page.id)
+  const failed = page.status === 'error'
+
+  return (
+    <div className="flex min-h-0 flex-1">
+      <FormList records={records} pending={pending} selectedId={page.id} onSelect={onSelect} open={listOpen}
+        onToggle={() => setListOpen((o) => !o)} filter={filter} onFilter={setFilter} />
+      <div className="relative flex min-w-0 flex-1 bg-stage">
+        <ViewToolbar view={view} />
+        <div className="min-h-0 flex-1 p-3">
+          <ImageCanvas pageId={page.id} view={view} />
+        </div>
+      </div>
+      <section aria-label="שדות הטופס" className="flex w-[316px] shrink-0 flex-col overflow-hidden border-s border-edge bg-surface">
+        <div className="flex items-center justify-between border-b border-edge px-4 py-2.5">
+          <h2 className="m-0 truncate text-base font-bold">{page.filename} · עמוד {page.page_number}</h2>
+        </div>
+        {failed ? (
+          <div role="alert" className="flex flex-col gap-2 px-4 py-4 text-sm font-semibold text-warn-ink">
+            קריאת השדות נכשלה ({page.error ?? 'שגיאה'}).
+            <button type="button" onClick={() => reprocess.mutate(page.id)} disabled={reprocess.isPending}
+              className="self-start rounded-[10px] border-[1.5px] border-warn bg-surface px-4 py-2 text-sm font-semibold text-warn-ink">נסי שוב</button>
+          </div>
+        ) : (
+          <div role="status" className="flex flex-col">
+            <div className="border-b border-edge px-4 py-2 text-xs font-semibold text-accent">
+              {page.status === 'pending' ? 'ממתין לתור…' : 'קורא את השדות… אפשר לעיין בטופס בינתיים'}
+            </div>
+            {FIELD_DEFS.map((def) => (
+              <div key={def.key} className="flex items-center gap-2 border-b border-[#eeeff1] px-4 py-3">
+                <div className="w-[66px] shrink-0 text-xs text-sub">{def.label}</div>
+                <div className="h-4 flex-1 animate-pulse rounded bg-muted" />
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  )
 }
 
 /** A collapsible list of forms, the form image, and its fields, with keyboard shortcuts. */
-function ReviewScreen({ records, record, onSelect }: Props & { record: CommitmentRecord }) {
+function ReviewScreen({ records, pending = [], record, onSelect }: Props & { record: CommitmentRecord }) {
   const [listOpen, setListOpen] = useStoredFlag(OPEN_KEY, true)
   const [filter, setFilter] = useState<ListFilter>('all')
   const [expanded, setExpanded] = useState(false)
@@ -95,7 +147,7 @@ function ReviewScreen({ records, record, onSelect }: Props & { record: Commitmen
 
   return (
     <div className="flex min-h-0 flex-1">
-      <FormList records={records} selectedId={record.id} onSelect={onSelect} open={listOpen}
+      <FormList records={records} pending={pending} selectedId={record.id} onSelect={onSelect} open={listOpen}
         onToggle={() => setListOpen((o) => !o)} filter={filter} onFilter={setFilter} />
 
       <div className="relative flex min-w-0 flex-1 bg-stage">

@@ -1,12 +1,15 @@
 import { useMemo, useState } from 'react'
-import type { CommitmentRecord } from '../api/types'
+import type { ActivePage, CommitmentRecord } from '../api/types'
 import { type ListFilter, filterRecords, flaggedCount, needsReview, recordTitle } from '../lib/fields'
 import { CountPill, Icon, IconButton } from './ui'
 
 const LIST_WIDTH = 236
 
-export function FormList({ records, selectedId, onSelect, open, onToggle, filter, onFilter }: {
+const WAITING_TEXT = { pending: 'ממתין', processing: 'קורא שדות…', error: 'שגיאה' } as const
+
+export function FormList({ records, pending = [], selectedId, onSelect, open, onToggle, filter, onFilter }: {
   records: CommitmentRecord[]
+  pending?: ActivePage[]
   selectedId: string | null
   onSelect: (id: string) => void
   open: boolean
@@ -41,6 +44,17 @@ export function FormList({ records, selectedId, onSelect, open, onToggle, filter
         </div>
 
         <ul className="m-0 flex min-h-0 flex-1 list-none flex-col gap-0.5 overflow-y-auto p-0">
+          {pending.map((p) => (
+            <li key={p.id}>
+              <button type="button" onClick={() => onSelect(p.id)} aria-current={p.id === selectedId}
+                className={`flex w-full items-center gap-1.5 rounded-[9px] border px-2 py-1.5 text-start ${p.id === selectedId ? 'border-accent-line bg-accent-soft' : 'border-transparent bg-transparent hover:bg-page'}`}>
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate text-sm font-semibold">{p.filename} · עמוד {p.page_number}</span>
+                  <span className={`truncate text-xs ${p.status === 'error' ? 'font-semibold text-warn-ink' : 'text-accent'}`}>{WAITING_TEXT[p.status]}</span>
+                </span>
+              </button>
+            </li>
+          ))}
           {shown.map((r) => {
             const selected = r.id === selectedId
             return (
