@@ -183,9 +183,10 @@ def prompt_id() -> str:
     return hashlib.sha1((SYSTEM_PROMPT + USER_PROMPT).encode()).hexdigest()[:6]
 
 
-def cache_tag(provider: str, model: str, oriented: bool) -> str:
-    """The name of a run's cache folder and report: provider-model-prompt, plus -oriented when the page is turned first."""
-    tag = f"{provider}-{model}-{prompt_id()}".replace("/", "_")
+def cache_tag(provider: str, model: str, oriented: bool, prompt: str | None = None) -> str:
+    """The name of a run's cache folder and report: provider-model-prompt, plus -oriented when the page is turned first.
+    `prompt` names an older prompt's cache; by default it is the current prompt's."""
+    tag = f"{provider}-{model}-{prompt or prompt_id()}".replace("/", "_")
     return tag + "-oriented" if oriented else tag
 
 

@@ -11,7 +11,7 @@ from app.db import repo
 from app.db.models import Document, Page
 from app.evaluation import cache_tag
 from app.schemas import RawExtraction, RawValue as V
-from app.services.demo_seed import DEFAULT_SOURCES, ReplayProvider, Source, load_flip_pages, parse_source, seed_demo
+from app.services.demo_seed import DEFAULT_SOURCES, SAVED_PROMPT, ReplayProvider, Source, load_flip_pages, parse_source, seed_demo
 from app.storage import LocalStorage, get_storage, set_storage
 
 RAW = Source("gemini", "gemini-2.5-flash", oriented=False)       # answers saved from pages that were not turned
@@ -216,8 +216,8 @@ class TestOrientation:
 
 class TestSourcesAndNotes:
     def test_parses_a_source_with_and_without_the_raw_marker(self):
-        assert parse_source("gemini:gemini-2.5-flash:raw") == Source("gemini", "gemini-2.5-flash", oriented=False)
-        assert parse_source("groq:qwen/qwen3.8-27b") == Source("groq", "qwen/qwen3.8-27b", oriented=True)
+        assert parse_source("gemini:gemini-2.5-flash:raw") == Source("gemini", "gemini-2.5-flash", oriented=False, prompt=SAVED_PROMPT)
+        assert parse_source("groq:qwen/qwen3.8-27b") == Source("groq", "qwen/qwen3.8-27b", oriented=True, prompt=SAVED_PROMPT)
 
     @pytest.mark.parametrize("bad", ["gemini", "gemini:", ":model", "a:b:c", "a:b:raw:x"])
     def test_rejects_a_malformed_source(self, bad):
@@ -227,7 +227,7 @@ class TestSourcesAndNotes:
     def test_the_default_order_prefers_the_best_measured_model(self):
         assert [(s.provider, s.model) for s in DEFAULT_SOURCES][0] == ("gemini", "gemini-2.5-flash")
         assert not DEFAULT_SOURCES[0].oriented              # those answers were saved from unturned pages
-        assert DEFAULT_SOURCES[1] == Source("gemini", "gemini-2.5-flash", oriented=True)   # then the same model, turned first
+        assert DEFAULT_SOURCES[1] == Source("gemini", "gemini-2.5-flash", oriented=True, prompt=SAVED_PROMPT)   # then the same model, turned first
         assert len(set(DEFAULT_SOURCES)) == len(DEFAULT_SOURCES)
 
     def test_flip_notes_are_read_from_the_file_and_a_missing_file_means_none(self, tmp_path):
@@ -239,3 +239,17 @@ class TestSourcesAndNotes:
     def test_the_real_notes_file_lists_the_five_pages_that_need_a_flip(self):
         from app.evaluation import DATA
         assert load_flip_pages(DATA / "sample_orientation.json") == {"p1_14", "p1_22", "p1_23", "p2_14", "p2_15"}
+
+
+def test_saved_answers_are_found_even_after_the_prompt_changed(tmp_path, monkeypatch):
+    """The demo replays answers saved with an earlier prompt; changing the prompt must not empty the demo."""
+    import app.evaluation as evaluation
+    from app.services.demo_seed import DEFAULT_SOURCES, SAVED_PROMPT, choose_answer
+
+    folder = tmp_path / f"gemini-gemini-2.5-flash-{SAVED_PROMPT}"
+    folder.mkdir()
+    (folder / "p1_01.json").write_text(RawExtraction().model_dump_json(), encoding="utf-8")
+    monkeypatch.setattr(evaluation, "prompt_id", lambda: "ffffff")      # the prompt has changed since
+
+    found = choose_answer("p1_01", sideways=False, sources=DEFAULT_SOURCES, cache_root=tmp_path)
+    assert found is not None and found[0].model == "gemini-2.5-flash"

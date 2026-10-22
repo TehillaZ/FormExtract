@@ -31,6 +31,7 @@ class Source:
     provider: str
     model: str
     oriented: bool
+    prompt: str | None = None   # which prompt's saved answers; None is the current prompt's
 
     @property
     def label(self) -> str:
@@ -42,16 +43,19 @@ def parse_source(spec: str) -> Source:
     parts = spec.split(":")
     if len(parts) not in (2, 3) or (len(parts) == 3 and parts[2] != "raw") or not all(parts[:2]):
         raise ValueError(f"'{spec}' should look like provider:model or provider:model:raw")
-    return Source(parts[0], parts[1], oriented=len(parts) == 2)
+    return Source(parts[0], parts[1], oriented=len(parts) == 2, prompt=SAVED_PROMPT)
 
 
 # Best measured first (PLAN 10.2). The first gemini-2.5-flash answers were saved without orientation correction, so
 # they are used for upright pages only; sideways pages take an answer that was read after the page was turned.
+# The saved answers were read with the prompt fingerprinted 6e6567. They are replayed, not asked again, so they stay
+# usable when the prompt changes (a new prompt starts a new evaluation cache, but must not empty the demo).
+SAVED_PROMPT = "6e6567"
 DEFAULT_SOURCES = (
-    Source("gemini", "gemini-2.5-flash", oriented=False),
-    Source("gemini", "gemini-2.5-flash", oriented=True),       # the held-out pages, read by the full pipeline
-    Source("gemini", "gemini-3.5-flash", oriented=True),
-    Source("groq", "qwen/qwen3.8-27b", oriented=True),
+    Source("gemini", "gemini-2.5-flash", oriented=False, prompt=SAVED_PROMPT),
+    Source("gemini", "gemini-2.5-flash", oriented=True, prompt=SAVED_PROMPT),   # the held-out pages, read by the full pipeline
+    Source("gemini", "gemini-3.5-flash", oriented=True, prompt=SAVED_PROMPT),
+    Source("groq", "qwen/qwen3.8-27b", oriented=True, prompt=SAVED_PROMPT),
 )
 
 
@@ -86,7 +90,7 @@ def choose_answer(page: str, sideways: bool, sources: tuple[Source, ...], cache_
     for source in sources:
         if sideways and not source.oriented:
             continue
-        saved = cache_root / cache_tag(source.provider, source.model, source.oriented) / f"{page}.json"
+        saved = cache_root / cache_tag(source.provider, source.model, source.oriented, source.prompt) / f"{page}.json"
         if saved.is_file():
             return source, RawExtraction.model_validate_json(saved.read_text(encoding="utf-8"))
     return None
