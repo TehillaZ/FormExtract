@@ -10,7 +10,7 @@ earlier forms are saved with the sender read wrongly (a hospital's name printed 
 by "a person" (the same patch the review screen uses), then a new form with the same wrong reading is read from a
 sample page image. The suggestion on that form is computed by the real rule, not drawn. The sender is the field
 where this helps: it comes from a closed list, so the same wrong reading really does repeat (numbers do not).
-Every record is named "דמו" and its provider says "demo".
+The patients are fictional, and every record's provider says "demo" (it is demo data: say so).
 
 Needs data/pages (see the README). Writes into the database named in .env (DATABASE_URL), and one image into
 data/storage. Safe to repeat: it does nothing if the demo forms are already there.
@@ -43,11 +43,15 @@ PROVIDER_EMPTY = "demo, empty sender (נתוני הדגמה)"
 PAGE = "p1_01"   # an upright Meuhedet form whose printed provider is Sheba and whose highlighted sender is Meuhedet
 
 
+EARLIER = {0: ("דנה", "כהן"), 1: ("יעל", "אברהם"), 2: ("דוד", "מזרחי"), 3: ("מיכל", "לוי")}   # fictional patients
+NEW = {False: ("רונית", "שמעוני"), True: ("אורי", "פרידמן")}   # by whether the sender is empty
+
+
 def earlier_form(n: int, empty_sender: bool = False) -> RawExtraction:
     sender = V() if empty_sender else V(value="שיבא", source="printed")
     return RawExtraction(
         template="meuhedet_commitment", sender=sender, other_senders=[] if empty_sender else [V(value=RIGHT)],
-        first_name=V(value="דמו", source="printed"), last_name=V(value=f"קודם {n}", source="printed"),
+        first_name=V(value=EARLIER[n][0], source="printed"), last_name=V(value=EARLIER[n][1], source="printed"),
         id_numbers=[V(value="011223344", source="printed")],
         stamp_date=V(value="18/06/2026", source="stamp"),
         commitment_numbers=[V(value=f"7{2 if empty_sender else 1}000000{n}", source="printed")])   # each demo has its own numbers
@@ -55,12 +59,12 @@ def earlier_form(n: int, empty_sender: bool = False) -> RawExtraction:
 
 def new_form(empty_sender: bool = False) -> RawExtraction:
     raw = earlier_form(0, empty_sender)
-    return raw.model_copy(update={"last_name": V(value="חדש", source="printed"),
+    return raw.model_copy(update={"first_name": V(value=NEW[empty_sender][0], source="printed"), "last_name": V(value=NEW[empty_sender][1], source="printed"),
                                   "commitment_numbers": [V(value=f"7{2 if empty_sender else 1}0000009", source="printed")]})
 
 
 def already_seeded(db, provider: str) -> bool:
-    return any(r.provider == provider for r in repo.list_records(db, q="דמו", limit=50))
+    return any(r.provider == provider for r in repo.list_records(db, limit=500))
 
 
 async def main() -> None:
@@ -94,7 +98,7 @@ async def main() -> None:
         page_id = doc.pages[0].id
     await process_page(page_id, (ReplayProvider(new_form(empty), provider), None))
     what = "its sender is empty" if empty else f"its sender ({WRONG})"
-    print(f"Done. Open the form 'דמו חדש': {what} and has a suggestion: {RIGHT}.")
+    print(f"Done. Open the form '{NEW[empty][0]} {NEW[empty][1]}': {what} and has a suggestion: {RIGHT}.")
 
 
 if __name__ == "__main__":
