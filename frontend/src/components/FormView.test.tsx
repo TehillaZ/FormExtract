@@ -306,6 +306,27 @@ describe('FormView: forms that are uploaded but not read yet', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 
+  it('lists the forms that are already read first, and the ones still being read after them', async () => {
+    installFakeApi(forms())
+    renderWithClient(<WithPending pending={[waiting()]} records={forms()} start="a" />)
+    await screen.findByRole('heading', { name: /דנה כהן/ })
+    const names = within(screen.getByRole('complementary', { name: 'רשימת הטפסים' })).getAllByRole('button')
+      .map((b) => b.textContent ?? '').filter((t) => /דנה|רונן|משה|scan.pdf/.test(t))
+    expect(names.at(-1)).toMatch(/scan.pdf/)
+    expect(names.slice(0, -1).some((t) => /scan.pdf/.test(t))).toBe(false)
+    expect(screen.getByText(/1 בעיבוד/)).toBeInTheDocument()
+  })
+
+  it('names every field from the start, each with its own "reading" placeholder', () => {
+    installFakeApi([])
+    renderWithClient(<WithPending pending={[waiting()]} records={[]} start="p1" />)
+    const panel = screen.getByRole('region', { name: 'שדות הטופס' })
+    for (const label of ['שם פרטי', 'שם משפחה', 'ת"ז', 'מספר מרכזי', 'תאריך קבלה', 'גורם שולח', 'מספר התחייבות']) {
+      expect(within(panel).getByText(label)).toBeInTheDocument()
+    }
+    expect(within(panel).getAllByTestId('reading')).toHaveLength(7)
+  })
+
   it('opens the finished record where the page was selected', async () => {
     installFakeApi(forms())
     const records = [{ ...makeRecord('r9'), page_ids: ['p1'] }]

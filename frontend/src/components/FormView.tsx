@@ -87,7 +87,7 @@ function WaitingScreen({ records, pending = [], page, onSelect }: Props & { page
             {FIELD_DEFS.map((def) => (
               <div key={def.key} className="flex items-center gap-2 border-b border-[#eeeff1] px-4 py-3">
                 <div className="w-[66px] shrink-0 text-xs text-sub">{def.label}</div>
-                <div className="h-4 flex-1 animate-pulse rounded bg-muted" />
+                <div className="flex-1 animate-pulse text-[15px] italic text-faint" data-testid="reading">קורא…</div>
               </div>
             ))}
           </div>
