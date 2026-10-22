@@ -26,6 +26,11 @@ class RateLimited(Exception):
         self.retry_after = retry_after   # seconds the provider asked us to wait, when it said
 
 
+class Unavailable(RateLimited):
+    """The provider kept answering with a server error (503 "high demand", 500, 502). It counts as a refusal to
+    serve right now, so callers move on to the next model or provider instead of failing the page."""
+
+
 class VisionProvider(ABC):
     name: str
 
@@ -86,9 +91,13 @@ def retry_after_seconds(response: httpx.Response) -> float | None:
     return int(hours or 0) * 3600 + int(minutes or 0) * 60 + float(seconds or 0)
 
 
+SERVER_ERROR_RETRIES = 2   # a busy server rarely recovers in a minute, and another model can answer meanwhile
+
+
 async def post_with_backoff(client, url: str, *, retries: int = 5, **kw):
     """POST, retrying on 429 / 5xx with exponential backoff (ADR-008). A 429 that asks for a long wait
-    (an exhausted daily quota) raises RateLimited at once so the caller can move on to another model."""
+    (an exhausted daily quota) raises RateLimited at once so the caller can move on to another model.
+    A server error that persists raises Unavailable (a RateLimited) after a couple of retries, for the same reason."""
     delay = 10.0
     host = httpx.URL(url).host
     for attempt in range(retries + 1):
@@ -100,12 +109,14 @@ async def post_with_backoff(client, url: str, *, retries: int = 5, **kw):
         asked = retry_after_seconds(r)
         if r.status_code == 429 and asked is not None and asked > MAX_WAIT_SECONDS:
             raise RateLimited(url, asked)
-        if attempt == retries:
+        if attempt == retries or (r.status_code != 429 and attempt >= SERVER_ERROR_RETRIES):
             break
         await asyncio.sleep(asked if asked is not None else delay)
         delay = min(delay * 2, 60)
     if r.status_code == 429:
         raise RateLimited(url, retry_after_seconds(r))
+    if r.status_code in (500, 502, 503):
+        raise Unavailable(url)
     r.raise_for_status()
 
 

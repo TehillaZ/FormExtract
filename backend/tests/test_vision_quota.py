@@ -127,3 +127,40 @@ def test_the_default_model_order_puts_the_fast_measured_model_first_and_the_slow
     models = [settings.gemini_model, *settings.gemini_fallback_models]
     assert models[0] == "gemini-2.5-flash" and models[-1] == "gemini-3.5-flash"
     assert len(set(models)) == len(models)
+
+
+class TestBusyServer:
+    """Google answers 503 "high demand" for minutes at a time. That must not fail the page while another model is free."""
+
+    async def test_a_server_that_stays_busy_gives_up_after_two_retries_as_unavailable(self, no_waiting):
+        from app.vision.base import Unavailable
+        client = ScriptedClient(*[response(503, "high demand")] * 5)
+        with pytest.raises(Unavailable) as e:
+            await post_with_backoff(client, "https://x/y")
+        assert isinstance(e.value, RateLimited)       # so every caller that moves on after a refusal also moves on now
+        assert client.calls == 3 and no_waiting == [10.0, 20.0]
+
+    async def test_the_next_gemini_model_is_tried_and_the_busy_one_rests_for_a_while(self, monkeypatch):
+        from app.vision.base import Unavailable
+        p, calls = TestGeminiFallback().provider(monkeypatch, {"m1": Unavailable("x"), "m2": "two", "m3": "three"})
+        assert await p._complete("s", "u", b"x") == "two" and calls == ["m1", "m2"]
+        await p._complete("s", "u", b"x")
+        assert calls == ["m1", "m2", "m2"]            # m1 is not asked again straight away
+
+    async def test_when_gemini_is_busy_everywhere_the_other_provider_reads_the_page(self):
+        from app.pipeline.process import extract_with_fallback
+        from app.vision.base import Unavailable
+
+        class Busy:
+            name = "gemini"
+            async def extract(self, img, hint=""):
+                raise Unavailable("x")
+
+        class Works:
+            name = "groq"
+            async def extract(self, img, hint=""):
+                from app.schemas import RawExtraction
+                return RawExtraction()
+
+        raw, name = await extract_with_fallback(None, Busy(), Works())
+        assert name == "groq"
