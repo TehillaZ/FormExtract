@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     min_call_interval: float = 7.0   # seconds between calls to one provider (free-tier RPM limits)
     database_url: str = ""
     storage_dir: str = "./data/storage"
+    user_password: str = ""        # the "user" role; empty means nobody can log in as a user
+    developer_password: str = ""   # the "developer" role (accuracy and repeated-mistakes screens)
 
     def has_api_key(self, provider: str) -> bool:
         return bool(getattr(self, f"{provider}_api_key"))

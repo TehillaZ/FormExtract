@@ -121,3 +121,5 @@ export interface CorrectionGroup {
   examples: { old: string | null; new: string | null }[]
   last_at: string
 }
+
+export type Role = 'user' | 'developer'

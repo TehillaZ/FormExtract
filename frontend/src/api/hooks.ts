@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react'
 import { type QueryClient, keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type RecordFilters, recordQuery } from '../lib/recordQuery'
-import { api, apiWithTotal, jsonBody } from './client'
+import { ApiError, api, apiWithTotal, jsonBody } from './client'
 import type {
-  ActivePage, ApproveCleanResult, CommitmentRecord, CorrectionGroup, DocumentStatus, EvaluationOverview, FieldChanges, PageStatus,
+  ActivePage, ApproveCleanResult, CommitmentRecord, CorrectionGroup, DocumentStatus, EvaluationOverview, FieldChanges, PageStatus, Role,
 } from './types'
 
 const RECORDS = ['records'] as const
@@ -72,7 +72,19 @@ export function useActivePages() {
 export function useUpload() {
   const qc = useQueryClient()
   return useMutation({
-    onSuccess: () => qc.invalidateQueries({ queryKey: ACTIVE }),   // the new pages show up in the form list at once
+    onSuccess: async (created) => {
+      // The new pages are listed at once, before the server is asked. They are in the list when it is polled, so
+      // we notice when they leave it.
+      const fresh: ActivePage[] = created.filter((d) => !d.duplicate).flatMap((d) => d.pages
+        .filter((p) => p.status !== 'ready' && p.status !== 'error' && !p.record_id)
+        .map((p) => ({ id: p.id, document_id: d.id, filename: d.filename, page_number: p.page_number, status: p.status as ActivePage['status'], error: null })))
+      qc.setQueryData<ActivePage[]>(ACTIVE, (old = []) => [...old, ...fresh.filter((f) => !old.some((o) => o.id === f.id))])
+      await qc.invalidateQueries({ queryKey: ACTIVE })
+      // a page can be read before the list is first asked (a small file, a fast model): then it never shows up
+      // there as leaving, so fetch the records once the list has been refreshed
+      await qc.invalidateQueries({ queryKey: RECORDS })
+      await refreshRecordsScreen(qc)
+    },
     mutationFn: (files: File[]) => {
       const form = new FormData()
       files.forEach((f) => form.append('files', f))
@@ -125,4 +137,40 @@ export function useApproveClean() {
 /** What people had to fix, grouped by field, sender and form type. */
 export function useCorrectionSummary() {
   return useQuery({ queryKey: ['corrections-summary'], queryFn: () => api<CorrectionGroup[]>('/corrections/summary') })
+}
+
+/** Who is logged in: the role, or null when nobody is (the server answers 401). */
+export function useSession() {
+  return useQuery({
+    queryKey: ['session'],
+    queryFn: async () => {
+      try {
+        return (await api<{ role: Role }>('/auth/me')).role
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 401) return null
+        throw e
+      }
+    },
+    staleTime: Infinity,
+    retry: false,
+  })
+}
+
+export function useLogin() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (password: string) => api<{ role: Role }>('/auth/login', jsonBody('POST', { password })),
+    onSuccess: ({ role }) => qc.setQueryData(['session'], role),
+  })
+}
+
+export function useLogout() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api<void>('/auth/logout', { method: 'POST' }),
+    onSuccess: () => {
+      qc.removeQueries({ predicate: (q) => q.queryKey[0] !== 'session' })   // nothing of the last person's data stays in memory
+      qc.setQueryData(['session'], null)
+    },
+  })
 }

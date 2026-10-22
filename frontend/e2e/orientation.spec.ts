@@ -1,9 +1,10 @@
 import { expect, test, type Locator } from '@playwright/test'
-import { formImage, modelCalls, openForm, resetBackend, uploadForms } from './helpers'
+import { formImage, modelCalls, openForm, resetBackend, signIn, uploadForms } from './helpers'
 
 /** Scans arrive turned: the pipeline must find the right way up, and the reviewer must see the corrected page. */
 test.beforeEach(async ({ page }) => {
   await resetBackend(page)
+  await signIn(page)
 })
 
 /** Brightness (0 black .. 255 white) of one pixel of the picture as the browser really loaded it. */

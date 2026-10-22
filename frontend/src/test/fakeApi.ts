@@ -1,5 +1,5 @@
 import { vi } from 'vitest'
-import type { ActivePage, CommitmentRecord, CorrectionGroup, DocumentStatus, EvaluationOverview, Field } from '../api/types'
+import type { ActivePage, CommitmentRecord, CorrectionGroup, DocumentStatus, EvaluationOverview, Field, Role } from '../api/types'
 import { FIELD_DEFS, displayValue, fieldsOf } from '../lib/fields'
 import { field } from './factories'
 
@@ -21,6 +21,8 @@ export interface FakeApi {
   evaluation: EvaluationOverview
   corrections: CorrectionGroup[]
   active: ActivePage[]            // pages uploaded but not read yet
+  role: Role | null               // who is logged in; null shows the login screen
+  passwords: Record<string, Role> // password -> role accepted by /auth/login
   called: (method: string, pathPart: string) => Call[]
 }
 
@@ -77,7 +79,7 @@ const normalise = (key: string) => (v: string) => {
 export function installFakeApi(initial: CommitmentRecord[] = []): FakeApi {
   const api: FakeApi = {
     records: structuredClone(initial), documents: {}, uploadResult: [], calls: [], patchError: null, approveError: null, uploadError: null,
-    senders: ['כללית', 'מכבי', 'מאוחדת', 'לאומית'], evaluation: { reports: [], pages: 0, dev_pages: 0, test_pages: 0 }, corrections: [], active: [],
+    senders: ['כללית', 'מכבי', 'מאוחדת', 'לאומית'], evaluation: { reports: [], pages: 0, dev_pages: 0, test_pages: 0 }, corrections: [], active: [], role: 'developer', passwords: { 'user-pw': 'user', 'dev-pw': 'developer' },
     called: (method, part) => api.calls.filter((c) => c.method === method && c.path.includes(part)),
   }
   const replace = (rec: CommitmentRecord) => { api.records = api.records.map((r) => (r.id === rec.id ? rec : r)) }
@@ -89,6 +91,14 @@ export function installFakeApi(initial: CommitmentRecord[] = []): FakeApi {
     api.calls.push({ method, path, body })
 
     if (method === 'GET' && path.startsWith('/records?')) return listRecords(api.records, new URL(path, 'http://x').searchParams)
+    if (method === 'GET' && path === '/auth/me') return api.role ? json({ role: api.role }) : json({ detail: 'יש להתחבר' }, 401)
+    if (method === 'POST' && path === '/auth/login') {
+      const role = api.passwords[(body as { password: string }).password]
+      if (!role) return json({ detail: 'סיסמה שגויה' }, 401)
+      api.role = role
+      return json({ role })
+    }
+    if (method === 'POST' && path === '/auth/logout') { api.role = null; return new Response(null, { status: 204 }) }
     if (method === 'GET' && path === '/senders') return json(api.senders)
     if (method === 'GET' && path === '/evaluation') return json(api.evaluation)
     if (method === 'GET' && path === '/pages/active') return json(api.active)

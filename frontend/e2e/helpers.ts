@@ -1,6 +1,9 @@
 import { expect, type Locator, type Page } from '@playwright/test'
 import { fileURLToPath } from 'node:url'
-import { API_URL } from './env'
+import { API_URL, UI_URL } from './env'
+
+/** The passwords the test server accepts (see backend/e2e/server.py). */
+export const PASSWORDS = { user: 'user-test-pw', developer: 'developer-test-pw' }
 
 const fixture = (name: string) => fileURLToPath(new URL(`./fixtures/${name}.png`, import.meta.url))
 
@@ -13,14 +16,21 @@ export async function resetBackend(page: Page) {
   expect(res.ok()).toBeTruthy()
 }
 
-/** Upload forms through the upload screen, wait until the server has processed them, and show the table. */
+/** Log in without going through the screen. The session cookie belongs to the page's browser, and goes through the
+ *  UI server's /api proxy so that it is for the host the page is on. A developer sees every screen. */
+export async function signIn(page: Page, role: keyof typeof PASSWORDS = 'developer') {
+  const res = await page.request.post(`${UI_URL}/api/auth/login`, { data: { password: PASSWORDS[role] } })
+  expect(res.ok()).toBeTruthy()
+}
+
+/** Upload forms through the upload screen, wait until the server has processed them, and show the table.
+ *  The app opens the form screen by itself right after an upload (the form is viewable before it is read). */
 export async function uploadForms(page: Page, ...forms: Form[]) {
   await page.goto('/')
   await page.getByRole('tab', { name: 'העלאה' }).click()
   await page.getByLabel('בחירת קבצים').setInputFiles(forms.map(fixture))
-  await expect(page.getByText('עמוד 1 · מוכן')).toHaveCount(forms.length, { timeout: 30_000 })
+  await expect(page.getByRole('banner')).toContainText(`${forms.length} טפסים`, { timeout: 30_000 })
   await page.getByRole('tab', { name: 'טבלה' }).click()
-  await expect(page.getByRole('banner')).toContainText(`${forms.length} טפסים`)
 }
 
 /** How many times the scripted vision model has been asked since the last reset. */

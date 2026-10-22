@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test'
-import { fieldRow, fieldsPanel, formImage, formList, header, openForm, resetBackend, tableRow, uploadForms, widthOf } from './helpers'
+import { fieldRow, fieldsPanel, formImage, formList, header, openForm, resetBackend, signIn, tableRow, uploadForms, widthOf } from './helpers'
 
 test.beforeEach(async ({ page }) => {
   await resetBackend(page)
+  await signIn(page)
 })
 
 test.describe('upload to table', () => {
@@ -16,6 +17,15 @@ test.describe('upload to table', () => {
     // form A: names, central number, date and commitment number are read but unverified; ID and sender are verified
     await expect(page.getByText('5 שדות דורשים בדיקה')).toBeVisible()
     await expect(row.locator('[data-flagged="true"]')).toHaveCount(5)
+  })
+
+  test('right after an upload the form screen opens with the form image', async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('tab', { name: 'העלאה' }).click()
+    await page.getByLabel('בחירת קבצים').setInputFiles('e2e/fixtures/form-a.png')
+    await expect(page.getByRole('tab', { name: 'טופס', selected: true })).toBeVisible()
+    await expect(page.locator('img[src*="/pages/"]')).toBeVisible()
+    await expect(page.getByRole('heading', { name: /דנה/ })).toBeVisible({ timeout: 30_000 })   // the fields arrive after
   })
 
   test('uploading the same file twice is recognised and not processed again', async ({ page }) => {

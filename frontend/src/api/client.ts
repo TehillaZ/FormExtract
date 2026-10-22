@@ -21,6 +21,7 @@ async function errorMessage(res: Response): Promise<string> {
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(BASE + path, init)
   if (!res.ok) throw new ApiError(res.status, await errorMessage(res))
+  if (res.status === 204) return undefined as T
   return (await res.json()) as T
 }
 

@@ -7,11 +7,12 @@ from datetime import date, datetime
 from typing import Annotated, Any, Literal
 
 import sqlalchemy as sa
-from fastapi import BackgroundTasks, Depends, FastAPI, File, HTTPException, Query, Response, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, FastAPI, File, HTTPException, Query, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
+from app.auth import Login, Me, current_role, end_session, require_developer, role_for_password, start_session
 from app.api.schemas import ActivePage, ApproveCleanResult, CorrectionGroup, DocumentStatus, EvaluationOverview, PageStatus
 from app.db import repo
 from app.db.models import Document, Page
@@ -39,6 +40,8 @@ app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173", "http
                    allow_methods=["*"], allow_headers=["*"], expose_headers=["X-Total-Count", "Content-Disposition"])
 
 DB = Annotated[Session, Depends(get_session)]
+
+protected = APIRouter(dependencies=[Depends(current_role)])   # every route but /health and /auth/*: logged in
 
 
 def get_evaluation_store() -> EvaluationStore:
@@ -68,7 +71,7 @@ class RecordFilters:
 
 # ---- documents ----------------------------------------------------------------------------------
 
-@app.post("/documents", response_model=list[DocumentStatus], status_code=202)
+@protected.post("/documents", response_model=list[DocumentStatus], status_code=202)
 async def upload(files: Annotated[list[UploadFile], File()], background: BackgroundTasks, db: DB):
     """Upload one or several files (PDF, JPG, PNG, HEIC). Returns at once; processing runs in the background."""
     storage, out = get_storage(), []
@@ -83,7 +86,7 @@ async def upload(files: Annotated[list[UploadFile], File()], background: Backgro
     return out
 
 
-@app.get("/documents/{document_id}", response_model=DocumentStatus)
+@protected.get("/documents/{document_id}", response_model=DocumentStatus)
 def document_status(document_id: uuid.UUID, db: DB):
     doc = db.get(Document, document_id)
     if doc is None:
@@ -91,7 +94,7 @@ def document_status(document_id: uuid.UUID, db: DB):
     return DocumentStatus.of(doc)
 
 
-@app.get("/pages/active", response_model=list[ActivePage])
+@protected.get("/pages/active", response_model=list[ActivePage])
 def active_pages(db: DB):
     """Pages still to become records, oldest first. The review screen shows them at once, with the image."""
     rows = db.execute(
@@ -102,7 +105,7 @@ def active_pages(db: DB):
                        status=p.status, error=p.error) for p, name in rows]
 
 
-@app.post("/pages/{page_id}/reprocess", response_model=PageStatus, status_code=202)
+@protected.post("/pages/{page_id}/reprocess", response_model=PageStatus, status_code=202)
 def reprocess(page_id: uuid.UUID, background: BackgroundTasks, db: DB):
     """Retry a page that failed (a crash or a rate limit). A page that already produced a record is refused:
     its saved model answer must stay what the record's corrections were made against."""
@@ -119,7 +122,7 @@ def reprocess(page_id: uuid.UUID, background: BackgroundTasks, db: DB):
     return PageStatus(id=page.id, page_number=page.page_number, status=page.status)
 
 
-@app.get("/pages/{page_id}/image")
+@protected.get("/pages/{page_id}/image")
 def page_image(page_id: uuid.UUID, db: DB, original: bool = False):
     page = db.get(Page, page_id)
     path = page and (page.original_path if original or not page.image_path else page.image_path)
@@ -131,7 +134,7 @@ def page_image(page_id: uuid.UUID, db: DB, original: bool = False):
 
 # ---- records ------------------------------------------------------------------------------------
 
-@app.get("/records", response_model=list[CommitmentRecord])
+@protected.get("/records", response_model=list[CommitmentRecord])
 def list_records(
     db: DB,
     response: Response,
@@ -150,7 +153,7 @@ EXPORTS = {
 }
 
 
-@app.get("/export")
+@protected.get("/export")
 def export_records(db: DB, filters: Annotated[RecordFilters, Depends()], format: Literal["csv", "xlsx"] = "xlsx"):
     """The records matching the filters as an Excel file (for people) or CSV (for programs). Same filters as /records."""
     build, media_type = EXPORTS[format]
@@ -160,21 +163,21 @@ def export_records(db: DB, filters: Annotated[RecordFilters, Depends()], format:
                     headers={"Content-Disposition": f'attachment; filename="{filename}"'})
 
 
-@app.get("/evaluation", response_model=EvaluationOverview)
+@protected.get("/evaluation", dependencies=[Depends(require_developer)], response_model=EvaluationOverview)
 def evaluation(store: Annotated[EvaluationStore, Depends(get_evaluation_store)]):
     """Saved accuracy reports (written by scripts/evaluate.py) and how much verified data exists."""
     coverage = store.coverage()
     return EvaluationOverview(reports=store.reports(), pages=coverage.pages, dev_pages=coverage.dev, test_pages=coverage.test)
 
 
-@app.post("/records/approve-clean", response_model=ApproveCleanResult)
+@protected.post("/records/approve-clean", response_model=ApproveCleanResult)
 def approve_clean(db: DB, document_id: Annotated[list[uuid.UUID] | None, Query()] = None):
     """'Approve all clean rows': every pending record with nothing flagged for review."""
     approved, skipped = repo.approve_clean(db, document_id)
     return ApproveCleanResult(approved=approved, skipped_duplicates=skipped)
 
 
-@app.get("/records/{record_id}", response_model=CommitmentRecord)
+@protected.get("/records/{record_id}", response_model=CommitmentRecord)
 def get_record(record_id: uuid.UUID, db: DB):
     try:
         return repo.get_record(db, record_id)
@@ -182,7 +185,7 @@ def get_record(record_id: uuid.UUID, db: DB):
         raise HTTPException(404, "הרשומה לא נמצאה") from None
 
 
-@app.patch("/records/{record_id}", response_model=CommitmentRecord)
+@protected.patch("/records/{record_id}", response_model=CommitmentRecord)
 def patch_record(record_id: uuid.UUID, changes: dict[str, Any], db: DB):
     """Body: {"field": "new value"} or {"central_numbers": ["939376", ...]}. An empty value clears the field."""
     try:
@@ -193,7 +196,7 @@ def patch_record(record_id: uuid.UUID, changes: dict[str, Any], db: DB):
         raise HTTPException(422, str(e)) from None
 
 
-@app.post("/records/{record_id}/approve", response_model=CommitmentRecord)
+@protected.post("/records/{record_id}/approve", response_model=CommitmentRecord)
 def approve(record_id: uuid.UUID, db: DB):
     try:
         return repo.approve_record(db, record_id)
@@ -203,13 +206,13 @@ def approve(record_id: uuid.UUID, db: DB):
         raise HTTPException(409, str(e)) from None
 
 
-@app.get("/corrections/summary", response_model=list[CorrectionGroup])
+@protected.get("/corrections/summary", dependencies=[Depends(require_developer)], response_model=list[CorrectionGroup])
 def corrections_summary(db: DB, min_count: Annotated[int, Query(ge=1)] = 1):
     """Repeated mistakes: what people had to fix, grouped by field, sender and form type."""
     return repo.correction_summary(db, min_count=min_count)
 
 
-@app.get("/senders", response_model=list[str])
+@protected.get("/senders", response_model=list[str])
 def senders():
     """The closed sender list, for the correction dropdown."""
     return all_senders()
@@ -218,3 +221,28 @@ def senders():
 @app.get("/health")
 def health():
     return {"ok": True}
+
+
+# ---- who is logged in ----------------------------------------------------------------------------
+
+@app.post("/auth/login", response_model=Me)
+def login(body: Login, response: Response):
+    """The password decides the role. Sets the session cookie."""
+    role = role_for_password(body.password)
+    if role is None:
+        raise HTTPException(401, "סיסמה שגויה")
+    start_session(response, role)
+    return Me(role=role)
+
+
+@app.post("/auth/logout", status_code=204)
+def logout(response: Response):
+    end_session(response)
+
+
+@app.get("/auth/me", response_model=Me)
+def me(role: Annotated[str, Depends(current_role)]):
+    return Me(role=role)
+
+
+app.include_router(protected)   # after the routes above are registered on it

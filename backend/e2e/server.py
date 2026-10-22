@@ -19,6 +19,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from app.api.main import app, get_evaluation_store
+from app.config import settings
 from app.db import repo
 from app.db.models import Base
 from app.db.session import init_db
@@ -26,6 +27,8 @@ from app.evaluation import EvaluationStore, FieldStats, build_report, save_repor
 from app.pipeline.extract import build_record
 from app.schemas import RawExtraction, RawValue as V
 from app.storage import LocalStorage, set_storage
+
+settings.user_password, settings.developer_password = "user-test-pw", "developer-test-pw"   # not the real ones from .env
 
 storage_dir = Path(tempfile.mkdtemp(prefix="formextract-e2e-"))
 db_dir = Path(tempfile.mkdtemp(prefix="formextract-e2e-db-"))          # apart from the images, which reset() clears

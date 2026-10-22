@@ -1,10 +1,11 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
-import { resetBackend } from './helpers'
+import { resetBackend, signIn } from './helpers'
 
 // The test server holds two saved reports (model-a: ID 3 of 8 right, 2 silent errors; model-b: 5 of 8, none) and a
 // ground truth of 10 pages: 8 for development and 2 held out, which no report covers.
 test.beforeEach(async ({ page }) => {
   await resetBackend(page)
+  await signIn(page)
   await page.goto('/')
   await page.getByRole('tab', { name: 'דוח דיוק' }).click()
   await expect(page.getByRole('heading', { name: 'דוח דיוק' })).toBeVisible()

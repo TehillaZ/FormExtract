@@ -122,3 +122,41 @@ describe('App: records and accuracy screens', () => {
     expect(await screen.findByText('עדיין אין דוחות דיוק.')).toBeInTheDocument()
   })
 })
+
+describe('App: roles', () => {
+  const tab = (name: string) => screen.queryByRole('tab', { name })
+
+  it('asks for a password before showing anything, and a wrong one is refused', async () => {
+    const api = installFakeApi([makeRecord('a')])
+    api.role = null
+    renderWithClient(<App />)
+    const user = userEvent.setup()
+    await user.type(await screen.findByLabelText('סיסמה'), 'wrong{Enter}')
+    expect(await screen.findByRole('alert')).toHaveTextContent('סיסמה שגויה')
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
+    expect(api.called('GET', '/records')).toHaveLength(0)
+  })
+
+  it('a user gets the upload, table, form and records screens but not the developer reports', async () => {
+    const api = installFakeApi([makeRecord('a')])
+    api.role = null
+    renderWithClient(<App />)
+    const user = userEvent.setup()
+    await user.type(await screen.findByLabelText('סיסמה'), 'user-pw{Enter}')
+    await screen.findByRole('tab', { name: 'טבלה' })
+    for (const name of ['העלאה', 'טבלה', 'טופס', 'רשומות']) expect(tab(name)).toBeInTheDocument()
+    for (const name of ['דוח דיוק', 'טעויות חוזרות']) expect(tab(name)).not.toBeInTheDocument()
+  })
+
+  it('a developer also gets the accuracy and repeated-mistakes screens', async () => {
+    await openApp()
+    for (const name of ['העלאה', 'טבלה', 'טופס', 'רשומות', 'דוח דיוק', 'טעויות חוזרות']) expect(tab(name)).toBeInTheDocument()
+  })
+
+  it('logging out returns to the password screen', async () => {
+    const { user } = await openApp()
+    await user.click(screen.getByRole('button', { name: 'יציאה' }))
+    expect(await screen.findByLabelText('סיסמה')).toBeInTheDocument()
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
+  })
+})

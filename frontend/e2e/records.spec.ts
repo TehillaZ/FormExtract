@@ -1,9 +1,10 @@
 import { expect, test, type Download, type Page } from '@playwright/test'
 import fs from 'node:fs'
-import { openForm, resetBackend, seedRecords, tableRow, uploadForms } from './helpers'
+import { openForm, resetBackend, signIn, seedRecords, tableRow, uploadForms } from './helpers'
 
 test.beforeEach(async ({ page }) => {
   await resetBackend(page)
+  await signIn(page)
 })
 
 const status = (page: Page) => page.getByRole('status')

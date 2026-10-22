@@ -131,6 +131,10 @@ python scripts/seed_demo.py               # load them (also: .\start.ps1 -Seed)
 
 It takes the model answers already saved in `data/eval_cache` and replays them through the **real pipeline** (turning the page, enhancement, barcodes, normalization, confidence, storage), replacing only the model call. Today that gives **44 forms**: 18 from Gemini 2.5 Flash, 2 from Gemini 3.5 Flash and 13 from Groq Qwen. Every record's provider reads for example `gemini:gemini-2.5-flash (saved answer)`, so it is never mistaken for a live run: **say so when you present it.** Running it again changes nothing. Needs `data/pages` (see below). Five sideways sample scans are still upside down after the turn; `data/sample_orientation.json` lists them so the replay shows them upright (PLAN ADR-020).
 
+## Roles and passwords
+
+The interface opens on a password screen. Two passwords in `.env` (`USER_PASSWORD`, `DEVELOPER_PASSWORD`; see `.env.example`) decide the role: a **user** gets העלאה, טבלה, טופס and רשומות; a **developer** also gets דוח דיוק and טעויות חוזרות. The server enforces it too: every route except `/health` needs the session cookie, and `/evaluation` and `/corrections/summary` need the developer role. A role whose password is empty cannot log in, there is no default password. Limits: no lockout after wrong guesses, and passwords are sent in the clear, so use HTTPS if the server is ever not on localhost.
+
 ## Exporting records
 
 The **רשומות** tab has two export buttons that download every record matching the filters on screen (not only the current page):

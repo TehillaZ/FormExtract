@@ -10,3 +10,6 @@ data/storage/
 frontend/dist/
 frontend/playwright-report/
 frontend/test-results/
+.copilot-azure/
+.github/
+.vscode/
