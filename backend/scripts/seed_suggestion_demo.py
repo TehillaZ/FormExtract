@@ -5,9 +5,11 @@
 
 A suggestion needs earlier corrections (PLAN ADR-023): the same reading, from the same sender, fixed the same way
 at least 3 times. In a real lab those come from people's work. Here they are made through the real code: three
-earlier forms are saved with a wrongly read central number and corrected by "a person" (the same patch the review
-screen uses), then a new form with the same wrong reading is read from a sample page image. The suggestion on that
-form is computed by the real rule, not drawn. Every record is named "דמו" and its provider says "demo".
+earlier forms are saved with the sender read wrongly (a hospital's name printed on a Meuhedet form) and corrected
+by "a person" (the same patch the review screen uses), then a new form with the same wrong reading is read from a
+sample page image. The suggestion on that form is computed by the real rule, not drawn. The sender is the field
+where this helps: it comes from a closed list, so the same wrong reading really does repeat (numbers do not).
+Every record is named "דמו" and its provider says "demo".
 
 Needs data/pages (see the README). Writes into the database named in .env (DATABASE_URL), and one image into
 data/storage. Safe to repeat: it does nothing if the demo forms are already there.
@@ -33,18 +35,17 @@ from app.services.demo_seed import ReplayProvider  # noqa: E402
 from app.services.documents import register_upload  # noqa: E402
 from app.storage import get_storage  # noqa: E402
 
-SENDER = "מכבי"
-WRONG, RIGHT = "938376", "939376"       # a handwritten 8 that is really a 9
+WRONG = 'המרכז הרפואי ע"ש חיים שיבא - תל השומר'   # the hospital that printed the form, read as the sender
+RIGHT = "מאוחדת"                                  # the HMO whose logo is highlighted: the real sender
 PROVIDER = "demo (נתוני הדגמה)"
 PAGE = "p1_03"
 
 
 def earlier_form(n: int) -> RawExtraction:
     return RawExtraction(
-        template="maccabi_lab", sender=V(value=SENDER, source="printed", highlighted=True),
+        template="meuhedet_commitment", sender=V(value="שיבא", source="printed"), other_senders=[V(value=RIGHT)],
         first_name=V(value="דמו", source="printed"), last_name=V(value=f"קודם {n}", source="printed"),
         id_numbers=[V(value="011223344", source="printed")],
-        central_numbers=[V(value=WRONG, source="handwritten")],
         stamp_date=V(value="18/06/2026", source="stamp"),
         commitment_numbers=[V(value=f"71000000{n}", source="printed")])
 
@@ -65,8 +66,8 @@ async def main() -> None:
     args = ap.parse_args()
     image_file = DATA / "pages" / f"{PAGE}.png"
     if args.dry_run:
-        print(f"would save 3 earlier {SENDER} forms, correct {WRONG} -> {RIGHT} on each, and read {image_file.name} "
-              f"as a new {SENDER} form with {WRONG}")
+        print(f"would save 3 earlier forms, correct the sender {WRONG} -> {RIGHT} on each, and read {image_file.name} "
+              f"as a new form with the sender {WRONG}")
         return
 
     init_db()
@@ -76,7 +77,7 @@ async def main() -> None:
             return
         for n in (1, 2, 3):
             rec = repo.save_record(db, build_record(earlier_form(n), [], provider=PROVIDER))
-            repo.patch_record(db, rec.id, {"central_numbers": [RIGHT]})
+            repo.patch_record(db, rec.id, {"sender": RIGHT})
             repo.approve_record(db, rec.id)
         img = cv2.imread(str(image_file))
         img[0, 0] = img[0, 0] ^ 1           # a different file hash, so it is not seen as already uploaded
@@ -84,7 +85,7 @@ async def main() -> None:
         doc, _ = register_upload(db, get_storage(), f"demo-{PAGE}.png", png.tobytes())
         page_id = doc.pages[0].id
     await process_page(page_id, (ReplayProvider(new_form(), PROVIDER), None))
-    print(f"Done. Open the form 'דמו חדש' ({SENDER}): its central number {WRONG} has a suggestion to change it to {RIGHT}.")
+    print(f"Done. Open the form 'דמו חדש': its sender ({WRONG}) has a suggestion to change it to {RIGHT}.")
 
 
 if __name__ == "__main__":

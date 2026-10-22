@@ -163,7 +163,7 @@ Learned from the samples rather than the task text (PLAN ADR-013):
 
 When people keep fixing the same reading the same way on one sender's forms (at least 3 times, 75% agreeing), the next form with that reading shows a suggestion: "on earlier forms from this sender, X was corrected to Y (3 of 3)". It is only applied when the user presses the button (PLAN ADR-023). The "טעויות חוזרות" tab lists all repeated corrections.
 
-To show a suggestion before any real corrections exist, run `python scripts/seed_suggestion_demo.py` from `backend/` (it writes into the database named in `.env`). It saves three earlier forms from one sender, corrects the same wrong central number on each through the real correction code, and reads a new form with that same wrong number, so the suggestion is computed by the real rule. These records are named "דמו" and their provider says "demo": say it is demo data. `--dry-run` shows what it would do; running it twice changes nothing.
+To show a suggestion before any real corrections exist, run `python scripts/seed_suggestion_demo.py` from `backend/` (it writes into the database named in `.env`). It saves three earlier Meuhedet forms whose sender was read as the hospital that printed them, corrects the sender on each through the real correction code, and reads a new form with the same wrong sender, so the suggestion is computed by the real rule. The sender is where this helps: it comes from a closed list, so the same wrong reading repeats. Central and commitment numbers are different on every form, so a suggestion on them would almost never apply. These records are named "דמו" and their provider says "demo": say it is demo data. `--dry-run` shows what it would do; running it twice changes nothing.
 
 ## Deploying to Render
 
