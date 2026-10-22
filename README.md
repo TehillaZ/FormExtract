@@ -18,10 +18,10 @@
 <div align="center">
 
 <a href="https://drive.google.com/file/d/1nvy_cGF9nPxZpJGG9YwGDXKosNjT8gCk/view" title="Watch the demo video">
-  <img src="docs/demo-video.png" alt="FormExtract: the review screen with a smart-memory suggestion (click to watch the demo)" width="860">
+  <img src="docs/demo-video.png" alt="FormExtract: the review screen, a form image beside its fields (click to watch the demo)" width="860">
 </a>
 
-*▶ [Watch the demo video](https://drive.google.com/file/d/1nvy_cGF9nPxZpJGG9YwGDXKosNjT8gCk/view). The form shown is a sample page, and the suggestion comes from demo data.*
+*▶ [Watch the demo video](https://drive.google.com/file/d/1nvy_cGF9nPxZpJGG9YwGDXKosNjT8gCk/view). The form shown is a sample page with fictional data.*
 
 </div>
 
