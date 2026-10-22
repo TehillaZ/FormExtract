@@ -206,6 +206,13 @@ describe('FieldsPanel: approving', () => {
       expect(await screen.findByRole('group', { name: 'הצעה לגורם שולח' })).toHaveTextContent('בטפסים קודמים נקרא הגורם שיבא ותוקן ל-מאוחדת')
     })
 
+    it('offers the sender that earlier forms of this type were given, when the sender is empty', async () => {
+      installFakeApi([makeRecord('a', { suggestions: [{ ...suggestion, field: 'sender', current: null, suggested: 'מאוחדת', sender: null }] })])
+      renderWithClient(<Harness id="a" />)
+      expect(await screen.findByRole('group', { name: 'הצעה לגורם שולח' }))
+        .toHaveTextContent('בטפסים קודמים מסוג זה הגורם השולח היה ריק ומולא: מאוחדת')
+    })
+
     it('applies it only when the user says so', async () => {
       const api = installFakeApi([withSuggestion()])
       renderWithClient(<Harness id="a" />)

@@ -120,13 +120,17 @@ SUGGEST_MIN_FIXES = 3        # how many agreeing corrections it takes before any
 SUGGEST_MIN_SHARE = 0.75     # and the share of all corrections of that reading that agree
 
 
-def _current_readings(rec: CommitmentRecord) -> dict[str, str]:
-    """The reading of every field a person has not already looked at, as it would be logged if corrected."""
-    out: dict[str, str] = {}
+def _current_readings(rec: CommitmentRecord) -> dict[str, str | None]:
+    """The reading of every field a person has not already looked at, as it would be logged if corrected.
+    An empty sender is a reading too (None), but only on a form of a known type: on forms of that type people
+    keep filling the same sender in, and "empty" alone, on any form, would say nothing."""
+    out: dict[str, str | None] = {}
     for name in SCALAR_FIELDS:
         f: Field = getattr(rec, name)
         if f.value and f.source != "manual":
             out[name] = f.value
+    if rec.sender.value is None and rec.sender.source != "manual" and rec.template:
+        out["sender"] = None
     for name in LIST_RULES:
         fields: list[Field] = getattr(rec, name)
         if fields and all(f.source != "manual" for f in fields) and _values(fields):
@@ -137,17 +141,22 @@ def _current_readings(rec: CommitmentRecord) -> dict[str, str]:
 def _suggestions(s: Session, recs: list[CommitmentRecord]) -> dict[uuid.UUID, list[Suggestion]]:
     out: dict[uuid.UUID, list[Suggestion]] = {r.id: [] for r in recs}
     readings = {r.id: _current_readings(r) for r in recs if r.status == "pending"}
-    wanted = {v for rd in readings.values() for v in rd.values()}
-    if not wanted:
+    values = [v for rd in readings.values() for v in rd.values()]
+    wanted = {v for v in values if v is not None}
+    if not values:
         return out
-    past = list(s.scalars(sa.select(CorrectionRow).where(CorrectionRow.old_value.in_(wanted))
+    seen = CorrectionRow.old_value.in_(wanted)
+    if None in values:   # someone had an empty sender: earlier fixes of an empty sender are needed too
+        seen = sa.or_(seen, CorrectionRow.old_value.is_(None))
+    past = list(s.scalars(sa.select(CorrectionRow).where(seen)
                           .order_by(CorrectionRow.at.desc(), CorrectionRow.id.desc())))
     for rec in recs:
         for name, current in readings.get(rec.id, {}).items():
             # same field, same reading, same sender (the sender field itself is judged by the reading alone)
             same = [c for c in past if c.field == name and c.old_value == current and c.record_id != rec.id
                     and (name == "sender" or c.sender == rec.sender.value)
-                    and (not c.template or not rec.template or c.template == rec.template)]
+                    and (not c.template or not rec.template or c.template == rec.template)
+                    and (current is not None or c.template == rec.template)]   # an empty reading needs the same form type
             if not same:
                 continue
             tally = defaultdict(int)

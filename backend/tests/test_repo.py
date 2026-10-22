@@ -290,3 +290,42 @@ def test_approved_records_get_no_suggestions(s):
     fix_times(s, 3)
     r = repo.save_record(s, make(central="939376", sender="מכבי"))
     assert repo.approve_record(s, r.id).suggestions == []
+
+
+# ---- an empty sender, filled in the same way on forms of one type ---------------------------------------------
+
+def form_without_sender(template="meuhedet_commitment", n=0):
+    raw = RawExtraction(template=template, id_numbers=[V(value="011223344", source="printed")],
+                        stamp_date=V(value="18/06/2026", source="stamp"),
+                        commitment_numbers=[V(value=f"72000000{n}", source="printed")])
+    return build_record(raw, [], provider="test")
+
+
+def fill_in_sender(s, times, sender="מאוחדת", template="meuhedet_commitment"):
+    for n in range(times):
+        r = repo.save_record(s, form_without_sender(template, n))
+        repo.patch_record(s, r.id, {"sender": sender})
+
+
+def test_an_empty_sender_gets_the_sender_people_keep_filling_in_on_that_form_type(s):
+    fill_in_sender(s, 3)
+    new = repo.get_record(s, repo.save_record(s, form_without_sender(n=9)).id)
+    [sg] = new.suggestions
+    assert (sg.field, sg.current, sg.suggested, sg.times, sg.total) == ("sender", None, "מאוחדת", 3, 3)
+    assert new.sender.value is None                          # only offered, never filled in
+
+
+def test_an_empty_sender_is_not_suggested_from_another_form_type_or_from_too_few_fixes(s):
+    fill_in_sender(s, 3, template="meuhedet_commitment")
+    assert repo.get_record(s, repo.save_record(s, form_without_sender("clalit_form17", 9)).id).suggestions == []
+    assert repo.get_record(s, repo.save_record(s, form_without_sender(None, 8)).id).suggestions == []   # type unknown
+    s.query(repo.CorrectionRow).delete()
+    s.commit()
+    fill_in_sender(s, 2)
+    assert repo.get_record(s, repo.save_record(s, form_without_sender(n=7)).id).suggestions == []
+
+
+def test_fixes_that_fill_in_different_senders_make_no_suggestion(s):
+    fill_in_sender(s, 2, sender="מאוחדת")
+    fill_in_sender(s, 2, sender="מכבי")
+    assert repo.get_record(s, repo.save_record(s, form_without_sender(n=9)).id).suggestions == []

@@ -27,7 +27,9 @@ function SuggestionBox({ def, suggestion, recordId }: { def: FieldDef; suggestio
     <div role="group" aria-label={`הצעה ל${def.label}`}
       className="mt-1 rounded-[8px] border border-accent-line bg-accent-soft px-2.5 py-1.5 text-xs">
       <div className="font-semibold">
-        {def.key === 'sender'
+        {def.key === 'sender' && suggestion.current === null
+          ? <>בטפסים קודמים מסוג זה הגורם השולח היה ריק ומולא: {text(suggestion.suggested)}</>
+          : def.key === 'sender'
           ? <>בטפסים קודמים נקרא הגורם {text(suggestion.current)} ותוקן ל-{text(suggestion.suggested)}</>
           : <>בטפסים קודמים{suggestion.sender ? ` מ${suggestion.sender}` : ''} תוקן {text(suggestion.current)} ל-{text(suggestion.suggested)}</>}
       </div>
