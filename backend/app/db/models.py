@@ -87,3 +87,8 @@ class CorrectionRow(Base):
     old_value: Mapped[str | None] = mapped_column(sa.Text)
     new_value: Mapped[str | None] = mapped_column(sa.Text)
     at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), default=_now)
+    # what the model got wrong, and where: lets repeated mistakes be grouped (by sender, form type, kind of writing)
+    sender: Mapped[str | None] = mapped_column(sa.String(200))
+    template: Mapped[str | None] = mapped_column(sa.String(100))
+    source: Mapped[str | None] = mapped_column(sa.String(20))          # printed | handwritten | sticker | ...
+    confidence: Mapped[str | None] = mapped_column(sa.String(10))      # what the system said before the person fixed it

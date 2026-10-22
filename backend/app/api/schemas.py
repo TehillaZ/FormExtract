@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 
 from pydantic import BaseModel
 
@@ -45,3 +46,20 @@ class EvaluationOverview(BaseModel):
     pages: int          # pages with a hand-verified answer
     dev_pages: int
     test_pages: int
+
+
+class CorrectionExample(BaseModel):
+    old: str | None
+    new: str | None
+
+
+class CorrectionGroup(BaseModel):
+    """One kind of repeated mistake: the same field, on the same sender's form type."""
+    field: str
+    sender: str | None
+    template: str | None
+    count: int
+    unflagged: int                # corrections of values the system had shown as certain
+    sources: dict[str, int]       # how the wrong value appeared: handwritten, printed, ...
+    examples: list[CorrectionExample]
+    last_at: datetime

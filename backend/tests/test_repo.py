@@ -196,3 +196,45 @@ def test_count_ignores_paging_and_follows_the_filters(s):
     assert repo.count_records(s, status="approved") == 1
     assert repo.count_records(s, q="דנה") == 5
     assert repo.count_records(s, q="דנה", status="approved") == 0
+
+
+# ---- recurring mistakes -------------------------------------------------------------------------
+
+def test_a_correction_remembers_where_the_mistake_happened(s):
+    r = repo.save_record(s, make(central="939376", sender="מכבי"))
+    repo.patch_record(s, r.id, {"central_numbers": ["939999"]})
+    with session_mod._factory() as fresh:
+        row = fresh.query(repo.CorrectionRow).one()
+    assert (row.field, row.sender, row.source, row.confidence) == ("central_numbers", "מכבי", "barcode", "high")   # a barcode match made it look certain
+
+
+def test_summary_groups_repeated_mistakes_and_counts_unflagged_ones(s):
+    for central in ("939001", "939002"):
+        r = repo.save_record(s, make(central=central, sender="מכבי"))
+        repo.patch_record(s, r.id, {"central_numbers": ["939999"]})
+    r = repo.save_record(s, make(sender="כללית"))
+    repo.patch_record(s, r.id, {"received_date": "20/06/2026"})
+    groups = repo.correction_summary(s)
+    assert [(g["field"], g["sender"], g["count"]) for g in groups] == [
+        ("central_numbers", "מכבי", 2), ("received_date", "כללית", 1)]
+    assert groups[0]["examples"] == [{"old": "939002", "new": "939999"}, {"old": "939001", "new": "939999"}]
+    assert groups[0]["sources"] == {"barcode": 2} and groups[0]["unflagged"] == 2
+    assert repo.correction_summary(s, min_count=2)[0]["count"] == 2 and len(repo.correction_summary(s, min_count=2)) == 1
+
+
+def test_a_confirmation_is_not_a_mistake(s):
+    r = repo.save_record(s, make())
+    repo.patch_record(s, r.id, {"first_name": None})
+    assert repo.correction_summary(s) == []
+
+
+def test_columns_are_added_to_an_old_corrections_table(tmp_path):
+    import sqlalchemy as sa
+    url = f"sqlite:///{tmp_path / 'old.db'}"
+    old = sa.create_engine(url)
+    with old.begin() as c:
+        c.execute(sa.text("CREATE TABLE corrections (id INTEGER PRIMARY KEY, record_id CHAR(32), field VARCHAR(40), "
+                          "old_value TEXT, new_value TEXT, at DATETIME)"))
+    old.dispose()
+    cols = {c["name"] for c in sa.inspect(session_mod.init_db(url)).get_columns("corrections")}
+    assert {"sender", "template", "source", "confidence"} <= cols

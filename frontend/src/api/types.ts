@@ -87,3 +87,15 @@ export interface EvaluationOverview {
   dev_pages: number
   test_pages: number
 }
+
+/** One kind of repeated mistake: people kept fixing the same field on the same sender's forms. */
+export interface CorrectionGroup {
+  field: string
+  sender: string | null
+  template: string | null
+  count: number
+  unflagged: number                 // corrections of values the system had shown as certain
+  sources: Record<string, number>   // how the wrong value appeared: handwritten, printed, ...
+  examples: { old: string | null; new: string | null }[]
+  last_at: string
+}

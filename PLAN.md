@@ -436,6 +436,12 @@ Not yet measured: the test set, `gemini-3.5-flash` and the lite models on enough
 - Decision: the system extracts by content and context: labels ("התחייבות", "דרישה", "דגימה", "מרכזי"), the sender field and the position on the form. The prompt says so explicitly. When a highlight exists it may raise confidence (corroborating an ID, keeping a sender high against rivals) and break ties between competing candidates; its absence never excludes a value.
 - Consequences: the prompt changed, so evaluation caches start fresh (the cache name includes the prompt fingerprint) and earlier accuracy numbers do not carry over. The "highlight removal" mode (section 9, item 4) is the way to measure accuracy without the marker. Because ADR-019 still counts a highlight as corroboration, unmarked forms get more "medium" and fewer "high" values, which sends them to a person.
 
+### ADR-022: Learning from the lab technician's corrections
+- Context: every correction a person makes is the best signal of what the system gets wrong, and it was thrown away after the log entry.
+- Decision: no model training. Each correction stores the field, old and new value, the sender, the form type, how the wrong value appeared (printed, handwritten, ...) and the confidence it had. A "repeated mistakes" screen groups them by field, sender and form type, and counts the ones that were shown as certain (the dangerous kind). Confirming a value without changing it is not a correction.
+- Next, not built yet: per-sender rules from the repeated mistakes, then a few non-identifying examples in the prompt. Examples must not contain names or ID numbers, and every change of the prompt starts fresh evaluation caches.
+- Consequences: databases created earlier get the new nullable columns added at start-up (no migration tool yet); old corrections have no context and are grouped under "unknown".
+
 ## 13. Open questions
 
 ### Technical

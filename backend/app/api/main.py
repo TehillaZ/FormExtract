@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from app.api.schemas import ApproveCleanResult, DocumentStatus, EvaluationOverview, PageStatus
+from app.api.schemas import ApproveCleanResult, CorrectionGroup, DocumentStatus, EvaluationOverview, PageStatus
 from app.db import repo
 from app.db.models import Document, Page
 from app.db.session import get_session, init_db, is_initialized
@@ -188,6 +188,12 @@ def approve(record_id: uuid.UUID, db: DB):
         raise HTTPException(404, "הרשומה לא נמצאה") from None
     except repo.DuplicateCommitmentError as e:
         raise HTTPException(409, str(e)) from None
+
+
+@app.get("/corrections/summary", response_model=list[CorrectionGroup])
+def corrections_summary(db: DB, min_count: Annotated[int, Query(ge=1)] = 1):
+    """Repeated mistakes: what people had to fix, grouped by field, sender and form type."""
+    return repo.correction_summary(db, min_count=min_count)
 
 
 @app.get("/senders", response_model=list[str])

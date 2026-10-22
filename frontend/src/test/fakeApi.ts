@@ -1,5 +1,5 @@
 import { vi } from 'vitest'
-import type { CommitmentRecord, DocumentStatus, EvaluationOverview, Field } from '../api/types'
+import type { CommitmentRecord, CorrectionGroup, DocumentStatus, EvaluationOverview, Field } from '../api/types'
 import { FIELD_DEFS, displayValue, fieldsOf } from '../lib/fields'
 import { field } from './factories'
 
@@ -19,6 +19,7 @@ export interface FakeApi {
   uploadError: string | null      // makes the upload answer 400 with this message
   senders: string[]
   evaluation: EvaluationOverview
+  corrections: CorrectionGroup[]
   called: (method: string, pathPart: string) => Call[]
 }
 
@@ -75,7 +76,7 @@ const normalise = (key: string) => (v: string) => {
 export function installFakeApi(initial: CommitmentRecord[] = []): FakeApi {
   const api: FakeApi = {
     records: structuredClone(initial), documents: {}, uploadResult: [], calls: [], patchError: null, approveError: null, uploadError: null,
-    senders: ['כללית', 'מכבי', 'מאוחדת', 'לאומית'], evaluation: { reports: [], pages: 0, dev_pages: 0, test_pages: 0 },
+    senders: ['כללית', 'מכבי', 'מאוחדת', 'לאומית'], evaluation: { reports: [], pages: 0, dev_pages: 0, test_pages: 0 }, corrections: [],
     called: (method, part) => api.calls.filter((c) => c.method === method && c.path.includes(part)),
   }
   const replace = (rec: CommitmentRecord) => { api.records = api.records.map((r) => (r.id === rec.id ? rec : r)) }
@@ -89,6 +90,7 @@ export function installFakeApi(initial: CommitmentRecord[] = []): FakeApi {
     if (method === 'GET' && path.startsWith('/records?')) return listRecords(api.records, new URL(path, 'http://x').searchParams)
     if (method === 'GET' && path === '/senders') return json(api.senders)
     if (method === 'GET' && path === '/evaluation') return json(api.evaluation)
+    if (method === 'GET' && path === '/corrections/summary') return json(api.corrections)
     if (method === 'POST' && path === '/records/approve-clean') {
       const clean = api.records.filter((r) => r.status === 'pending' && r.id && !hasFlag(r))
       clean.forEach((r) => replace({ ...r, status: 'approved' }))

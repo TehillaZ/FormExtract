@@ -181,3 +181,14 @@ class TestExport:
         for _ in range(7):
             seed()
         assert len(csv_rows(client.get("/export", params={"format": "csv"}))) == 8
+
+
+def test_corrections_summary_endpoint(client):
+    from tests.test_repo import make
+    import app.db.session as session_mod
+    from app.db import repo
+    with session_mod._factory() as s:
+        r = repo.save_record(s, make(sender="מכבי"))
+    client.patch(f"/records/{r.id}", json={"central_numbers": ["939999"]})
+    out = client.get("/corrections/summary").json()
+    assert out[0]["field"] == "central_numbers" and out[0]["sender"] == "מכבי" and out[0]["count"] == 1

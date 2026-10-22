@@ -16,7 +16,7 @@ from app.db.models import CorrectionRow, Record, RecordCentralNumber, RecordComm
 from app.schemas import CommitmentRecord, Correction, Field
 from app.validation.manual import LIST_RULES, SCALAR_FIELDS, InvalidValue, clean_list, clean_scalar
 
-__all__ = ["NotFound", "DuplicateCommitmentError", "InvalidValue", "save_record", "get_record", "list_records",
+__all__ = ["correction_summary", "NotFound", "DuplicateCommitmentError", "InvalidValue", "save_record", "get_record", "list_records",
            "patch_record", "approve_record", "approve_clean"]
 
 MANUAL = "תוקן ידנית"
@@ -188,16 +188,24 @@ def _confirmed(value: str | None, raw: str | None = None) -> Field:
     return Field(value=value, raw_text=raw, confidence="high", source="manual", reasons=[CONFIRMED])
 
 
-def _apply_changes(rec: CommitmentRecord, changes: dict) -> tuple[list[tuple[str, str | None, str | None]], bool]:
+Logged = tuple[str, str | None, str | None, str | None, str | None]   # field, old, new, source, confidence before
+
+
+def _weakest(fields: list[Field]) -> str | None:
+    order = {"low": 0, "medium": 1, "high": 2}
+    return min((f.confidence for f in fields), key=order.get, default=None)
+
+
+def _apply_changes(rec: CommitmentRecord, changes: dict) -> tuple[list[Logged], bool]:
     """Validate and apply what a person saved to rec in place.
 
-    Returns (log, touched). `log` holds (field, old, new) for values that really changed. `touched` is also true
+    Returns (log, touched). `log` holds (field, old, new, source and confidence before) for values that really changed. `touched` is also true
     when an unchanged but flagged field was saved: that is a confirmation, not a correction, so it is not logged.
     """
     unknown = set(changes) - set(SCALAR_FIELDS) - set(LIST_RULES)
     if unknown:
         raise InvalidValue("שדה לא מוכר: " + ", ".join(sorted(unknown)))
-    log: list[tuple[str, str | None, str | None]] = []
+    log: list[Logged] = []
     touched = False
     for name, new in changes.items():
         if name in SCALAR_FIELDS:
@@ -205,7 +213,7 @@ def _apply_changes(rec: CommitmentRecord, changes: dict) -> tuple[list[tuple[str
             value = clean_scalar(name, new if isinstance(new, str) else None)
             if value != old.value:
                 setattr(rec, name, _manual(value, raw=old.raw_text))
-                log.append((name, old.value, value))
+                log.append((name, old.value, value, old.source, old.confidence))
                 touched = True
             elif old.confidence != "high":
                 setattr(rec, name, _confirmed(value, raw=old.raw_text))
@@ -216,7 +224,8 @@ def _apply_changes(rec: CommitmentRecord, changes: dict) -> tuple[list[tuple[str
             values = clean_list(name, list(new or []))
             if values != old_values:
                 setattr(rec, name, [_manual(v) for v in values] or [_manual(None)])
-                log.append((name, ", ".join(old_values) or None, ", ".join(values) or None))
+                log.append((name, ", ".join(old_values) or None, ", ".join(values) or None,
+                            next((f.source for f in old_fields if f.value), None), _weakest(old_fields)))
                 touched = True
             elif any(f.confidence != "high" for f in old_fields):
                 setattr(rec, name, [_confirmed(v) for v in values] or [_confirmed(None)])
@@ -235,7 +244,10 @@ def patch_record(s: Session, record_id: uuid.UUID, changes: dict) -> CommitmentR
     if log and row.status == "approved":   # a real edit sends the record back for approval; a confirmation does not
         row.status, row.approved_at = "pending", None
     now = datetime.now(UTC)
-    row.corrections.extend(CorrectionRow(field=f, old_value=o, new_value=n, at=now) for f, o, n in log)
+    sender = rec.sender.value or rec.sender.raw_text   # the sender after the fix: where the mistake belongs
+    row.corrections.extend(CorrectionRow(field=f, old_value=o, new_value=n, at=now, sender=sender,
+                                         template=rec.template, source=src, confidence=conf)
+                           for f, o, n, src, conf in log)
     _sync_columns(row, rec)
     s.commit()
     return get_record(s, record_id)
@@ -269,3 +281,26 @@ def approve_clean(s: Session, document_ids: list[uuid.UUID] | None = None) -> tu
         except DuplicateCommitmentError:
             skipped.append(rec.id)
     return approved, skipped
+
+
+# ---- recurring mistakes -------------------------------------------------------------------------
+
+def correction_summary(s: Session, *, examples: int = 3, min_count: int = 1) -> list[dict]:
+    """Corrections grouped by field, sender and form type, most frequent first. Each group keeps a few
+    old -> new examples and how many of the mistakes the system had NOT flagged (confidence high): those
+    are the ones that would have reached the database unnoticed."""
+    rows = s.execute(sa.select(CorrectionRow).order_by(CorrectionRow.at.desc(), CorrectionRow.id.desc())).scalars()
+    groups: dict[tuple, dict] = {}
+    for c in rows:
+        key = (c.field, c.sender, c.template)
+        g = groups.setdefault(key, {"field": c.field, "sender": c.sender, "template": c.template, "count": 0,
+                                    "unflagged": 0, "sources": defaultdict(int), "examples": [], "last_at": c.at})
+        g["count"] += 1
+        g["unflagged"] += c.confidence == "high"
+        if c.source:
+            g["sources"][c.source] += 1
+        pair = (c.old_value, c.new_value)
+        if len(g["examples"]) < examples and pair not in [(e["old"], e["new"]) for e in g["examples"]]:
+            g["examples"].append({"old": c.old_value, "new": c.new_value})
+    out = [{**g, "sources": dict(g["sources"])} for g in groups.values() if g["count"] >= min_count]
+    return sorted(out, key=lambda g: (-g["count"], -g["unflagged"], g["field"]))

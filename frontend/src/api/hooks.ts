@@ -2,7 +2,7 @@ import { type QueryClient, keepPreviousData, useMutation, useQuery, useQueryClie
 import { type RecordFilters, recordQuery } from '../lib/recordQuery'
 import { api, apiWithTotal, jsonBody } from './client'
 import type {
-  ApproveCleanResult, CommitmentRecord, DocumentStatus, EvaluationOverview, FieldChanges, PageStatus,
+  ApproveCleanResult, CommitmentRecord, CorrectionGroup, DocumentStatus, EvaluationOverview, FieldChanges, PageStatus,
 } from './types'
 
 const RECORDS = ['records'] as const
@@ -95,4 +95,9 @@ export function useApproveClean() {
     mutationFn: () => api<ApproveCleanResult>('/records/approve-clean', { method: 'POST' }),
     onSuccess: () => Promise.all([qc.invalidateQueries({ queryKey: RECORDS }), refreshRecordsScreen(qc)]),
   })
+}
+
+/** What people had to fix, grouped by field, sender and form type. */
+export function useCorrectionSummary() {
+  return useQuery({ queryKey: ['corrections-summary'], queryFn: () => api<CorrectionGroup[]>('/corrections/summary') })
 }

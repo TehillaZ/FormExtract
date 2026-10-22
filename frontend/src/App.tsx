@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useRecords } from './api/hooks'
 import { AccuracyView } from './components/AccuracyView'
+import { CorrectionsView } from './components/CorrectionsView'
 import { FormView } from './components/FormView'
 import { RecordsView } from './components/RecordsView'
 import { TableView } from './components/TableView'
@@ -8,7 +9,7 @@ import { Tabs } from './components/ui'
 import { UploadView } from './components/UploadView'
 import { flaggedCount } from './lib/fields'
 
-type View = 'upload' | 'table' | 'form' | 'records' | 'accuracy'
+type View = 'upload' | 'table' | 'form' | 'records' | 'accuracy' | 'corrections'
 
 export default function App() {
   const [view, setView] = useState<View>('table')
@@ -26,7 +27,7 @@ export default function App() {
           <div className="text-[19px] font-bold text-accent">חילוץ טפסי התחייבות</div>
           <Tabs<View> value={view} onChange={setView} items={[
             { id: 'upload', label: 'העלאה' }, { id: 'table', label: 'טבלה' }, { id: 'form', label: 'טופס' },
-            { id: 'records', label: 'רשומות' }, { id: 'accuracy', label: 'דוח דיוק' },
+            { id: 'records', label: 'רשומות' }, { id: 'accuracy', label: 'דוח דיוק' }, { id: 'corrections', label: 'טעויות חוזרות' },
           ]} />
         </div>
         <div className="text-sm text-sub">
@@ -37,6 +38,8 @@ export default function App() {
       <main className="flex min-h-0 flex-1 flex-col">
         {view === 'accuracy' ? (
           <AccuracyView />
+        ) : view === 'corrections' ? (
+          <CorrectionsView />
         ) : error ? (
           <div role="alert" className="m-auto text-warn-ink">לא ניתן להתחבר לשרת. ודאי שהשרת פועל.</div>
         ) : isLoading ? (
