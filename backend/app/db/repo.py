@@ -13,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.db.models import CorrectionRow, Record, RecordCentralNumber, RecordCommitmentNumber
-from app.schemas import CommitmentRecord, Correction, Field
+from app.schemas import CommitmentRecord, Correction, Field, PastFix, Suggestion
 from app.validation.manual import LIST_RULES, SCALAR_FIELDS, InvalidValue, clean_list, clean_scalar
 
 __all__ = ["correction_summary", "NotFound", "DuplicateCommitmentError", "InvalidValue", "save_record", "get_record", "list_records",
@@ -44,7 +44,7 @@ def _values(fields: list[Field]) -> list[str]:
 
 def _sync_columns(row: Record, rec: CommitmentRecord) -> None:
     """Copy the record into the row: the JSON document plus the columns used for search and filtering."""
-    row.data = rec.model_dump(mode="json", exclude={"corrections", "duplicate_warnings", "id", "status", "approved_at"})
+    row.data = rec.model_dump(mode="json", exclude={"corrections", "duplicate_warnings", "suggestions", "id", "status", "approved_at"})
     row.id_number = rec.id_number.value
     row.sender = rec.sender.value
     row.received_date = date.fromisoformat(rec.received_date.value) if rec.received_date.value else None
@@ -84,11 +84,11 @@ def _row(s: Session, record_id: uuid.UUID) -> Record:
 
 def _present(s: Session, rows: list[Record]) -> list[CommitmentRecord]:
     warnings = _duplicate_warnings(s, rows)
-    out = []
-    for row in rows:
-        rec = _to_record(row)
-        rec.duplicate_warnings = warnings[row.id]
-        out.append(rec)
+    out = [_to_record(row) for row in rows]
+    suggestions = _suggestions(s, out)
+    for rec in out:
+        rec.duplicate_warnings = warnings[rec.id]
+        rec.suggestions = suggestions[rec.id]
     return out
 
 
@@ -110,6 +110,56 @@ def _duplicate_warnings(s: Session, rows: list[Record]) -> dict[uuid.UUID, list[
             warnings[record_id] += [f"{label} {v} כבר קיים ברשומה אחרת"
                                     for v in sorted(values) if owners[v] - {record_id}]
     return warnings
+
+
+# ---- suggestions from earlier corrections -------------------------------------------------------
+# "Smart memory": when people keep changing the same reading to the same value on one sender's forms, offer that
+# change on the next form with the same reading. It is only an offer: nothing is applied without a person.
+
+SUGGEST_MIN_FIXES = 3        # how many agreeing corrections it takes before anything is offered
+SUGGEST_MIN_SHARE = 0.75     # and the share of all corrections of that reading that agree
+
+
+def _current_readings(rec: CommitmentRecord) -> dict[str, str]:
+    """The reading of every field a person has not already looked at, as it would be logged if corrected."""
+    out: dict[str, str] = {}
+    for name in SCALAR_FIELDS:
+        f: Field = getattr(rec, name)
+        if f.value and f.source != "manual":
+            out[name] = f.value
+    for name in LIST_RULES:
+        fields: list[Field] = getattr(rec, name)
+        if fields and all(f.source != "manual" for f in fields) and _values(fields):
+            out[name] = ", ".join(_values(fields))
+    return out
+
+
+def _suggestions(s: Session, recs: list[CommitmentRecord]) -> dict[uuid.UUID, list[Suggestion]]:
+    out: dict[uuid.UUID, list[Suggestion]] = {r.id: [] for r in recs}
+    readings = {r.id: _current_readings(r) for r in recs if r.status == "pending"}
+    wanted = {v for rd in readings.values() for v in rd.values()}
+    if not wanted:
+        return out
+    past = list(s.scalars(sa.select(CorrectionRow).where(CorrectionRow.old_value.in_(wanted))
+                          .order_by(CorrectionRow.at.desc(), CorrectionRow.id.desc())))
+    for rec in recs:
+        for name, current in readings.get(rec.id, {}).items():
+            # same field, same reading, same sender (the sender field itself is judged by the reading alone)
+            same = [c for c in past if c.field == name and c.old_value == current and c.record_id != rec.id
+                    and (name == "sender" or c.sender == rec.sender.value)
+                    and (not c.template or not rec.template or c.template == rec.template)]
+            if not same:
+                continue
+            tally = defaultdict(int)
+            for c in same:
+                tally[c.new_value] += 1
+            best, times = max(tally.items(), key=lambda kv: kv[1])
+            if times < SUGGEST_MIN_FIXES or times / len(same) < SUGGEST_MIN_SHARE:
+                continue
+            out[rec.id].append(Suggestion(
+                field=name, current=current, suggested=best, times=times, total=len(same), sender=rec.sender.value,
+                examples=[PastFix(old=c.old_value, new=c.new_value, at=c.at) for c in same if c.new_value == best][:3]))
+    return out
 
 
 # ---- create / read ------------------------------------------------------------------------------

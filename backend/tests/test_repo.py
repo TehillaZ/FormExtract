@@ -238,3 +238,55 @@ def test_columns_are_added_to_an_old_corrections_table(tmp_path):
     old.dispose()
     cols = {c["name"] for c in sa.inspect(session_mod.init_db(url)).get_columns("corrections")}
     assert {"sender", "template", "source", "confidence"} <= cols
+
+
+# ---- suggestions from earlier corrections ---------------------------------------------------------
+
+def fix_times(s, n, *, sender="מכבי", central="939376", new="939999"):
+    """n earlier forms from the sender, each with the same wrong central number, each corrected the same way."""
+    for _ in range(n):
+        r = repo.save_record(s, make(central=central, sender=sender))
+        repo.patch_record(s, r.id, {"central_numbers": [new]})
+
+
+def suggestion_for(s, **kw):
+    return repo.get_record(s, repo.save_record(s, make(**kw)).id).suggestions
+
+
+def test_after_enough_consistent_fixes_the_same_reading_gets_a_suggestion(s):
+    fix_times(s, 3)
+    [sg] = suggestion_for(s, central="939376", sender="מכבי")
+    assert (sg.field, sg.current, sg.suggested, sg.times, sg.total, sg.sender) == (
+        "central_numbers", "939376", "939999", 3, 3, "מכבי")
+    assert len(sg.examples) == 3
+
+
+def test_too_few_fixes_offer_nothing(s):
+    fix_times(s, 2)
+    assert suggestion_for(s, central="939376", sender="מכבי") == []
+
+
+def test_another_sender_or_another_reading_is_not_affected(s):
+    fix_times(s, 3)
+    assert suggestion_for(s, central="939376", sender="כללית") == []
+    assert suggestion_for(s, central="939377", sender="מכבי") == []
+
+
+def test_fixes_that_disagree_offer_nothing(s):
+    fix_times(s, 2, new="939999")
+    fix_times(s, 2, new="939888")
+    assert suggestion_for(s, central="939376", sender="מכבי") == []
+
+
+def test_a_suggestion_is_never_applied_and_a_value_a_person_typed_has_none(s):
+    fix_times(s, 3)
+    r = repo.save_record(s, make(central="939376", sender="מכבי"))
+    assert r.central_numbers[0].value == "939376"            # only offered
+    assert repo.get_record(s, r.id).suggestions                 # still on offer after reading it again
+    assert repo.patch_record(s, r.id, {"central_numbers": ["939111"]}).suggestions == []
+
+
+def test_approved_records_get_no_suggestions(s):
+    fix_times(s, 3)
+    r = repo.save_record(s, make(central="939376", sender="מכבי"))
+    assert repo.approve_record(s, r.id).suggestions == []

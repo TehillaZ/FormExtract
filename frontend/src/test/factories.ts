@@ -9,7 +9,7 @@ export function makeRecord(id: string, over: Partial<CommitmentRecord> = {}): Co
     id, document_id: null, page_numbers: [1], page_ids: [`page-${id}`], template: null, provider: 'gemini',
     first_name: field('דנה'), last_name: field('כהן'), id_number: field('011223344'),
     central_numbers: [field('939376')], received_date: field('2026-06-18'), sender: field('כללית'),
-    commitment_numbers: [field('730578626')], status: 'pending', approved_at: null, corrections: [], duplicate_warnings: [], ...over,
+    commitment_numbers: [field('730578626')], status: 'pending', approved_at: null, corrections: [], duplicate_warnings: [], suggestions: [], ...over,
   }
 }
 

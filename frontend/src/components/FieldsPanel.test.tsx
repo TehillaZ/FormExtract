@@ -183,4 +183,39 @@ describe('FieldsPanel: approving', () => {
     renderWithClient(<Harness id="a" />)
     expect(await screen.findByRole('alert')).toHaveTextContent('כבר קיים ברשומה אחרת')
   })
+
+  describe('suggestions from earlier corrections', () => {
+    const suggestion = {
+      field: 'central_numbers', current: '939376', suggested: '939999', times: 3, total: 3, sender: 'כללית',
+      examples: [{ old: '939376', new: '939999', at: '2026-10-20T10:00:00Z' }],
+    }
+    const withSuggestion = () => makeRecord('a', { suggestions: [suggestion] })
+
+    it('offers the earlier fix with how many corrections stand behind it, and does not apply it', async () => {
+      const api = installFakeApi([withSuggestion()])
+      renderWithClient(<Harness id="a" />)
+      const box = await screen.findByRole('group', { name: 'הצעה למספר מרכזי' })
+      expect(box).toHaveTextContent('בטפסים קודמים מכללית תוקן 939376 ל-939999')
+      expect(box).toHaveTextContent('3 מתוך 3 תיקונים קודמים')
+      expect(api.called('PATCH', '/records/a')).toHaveLength(0)
+    })
+
+    it('applies it only when the user says so', async () => {
+      const api = installFakeApi([withSuggestion()])
+      renderWithClient(<Harness id="a" />)
+      await screen.findByRole('group', { name: 'הצעה למספר מרכזי' })
+      await userEvent.setup().click(screen.getByRole('button', { name: 'החילי את ההצעה' }))
+      await waitFor(() => expect(api.called('PATCH', '/records/a')).toHaveLength(1))
+      expect(api.called('PATCH', '/records/a')[0].body).toEqual({ central_numbers: ['939999'] })
+    })
+
+    it('can be ignored', async () => {
+      const api = installFakeApi([withSuggestion()])
+      renderWithClient(<Harness id="a" />)
+      await screen.findByRole('group', { name: 'הצעה למספר מרכזי' })
+      await userEvent.setup().click(screen.getByRole('button', { name: 'התעלמי' }))
+      expect(screen.queryByRole('group', { name: 'הצעה למספר מרכזי' })).not.toBeInTheDocument()
+      expect(api.called('PATCH', '/records/a')).toHaveLength(0)
+    })
+  })
 })

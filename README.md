@@ -155,6 +155,10 @@ Learned from the samples rather than the task text (PLAN ADR-013):
 - Sample IDs are fake and many fail the check digit (13 of 48 have 8 or 10 digits). Flagging them is correct.
 - Yellow highlights are not relied on (real forms may not have them). The model extracts by content and context: labels such as "התחייבות", "דרישה", "דגימה", "מרכזי" and the position on the form. When a highlight exists it only raises confidence and breaks ties; it is never a condition (PLAN ADR-021).
 
+## Smart memory
+
+When people keep fixing the same reading the same way on one sender's forms (at least 3 times, 75% agreeing), the next form with that reading shows a suggestion: "on earlier forms from this sender, X was corrected to Y (3 of 3)". It is only applied when the user presses the button (PLAN ADR-023). The "טעויות חוזרות" tab lists all repeated corrections.
+
 ## Known limitations
 
 - **Model quota.** The Gemini free tier allows **20 requests per day per model**. The provider walks a list of models (`GEMINI_FALLBACK_MODELS`), which gives roughly 80 a day, but accuracy across those models has not been compared, and some newer models answer slowly. A 40-form stack is possible only with fallbacks, and a real lab needs a paid tier or a local model. Pre-processed demo results remain the safety net.

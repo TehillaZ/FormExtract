@@ -442,6 +442,12 @@ Not yet measured: the test set, `gemini-3.5-flash` and the lite models on enough
 - Next, not built yet: per-sender rules from the repeated mistakes, then a few non-identifying examples in the prompt. Examples must not contain names or ID numbers, and every change of the prompt starts fresh evaluation caches.
 - Consequences: databases created earlier get the new nullable columns added at start-up (no migration tool yet); old corrections have no context and are grouped under "unknown".
 
+### ADR-023: Smart memory - suggestions from earlier corrections
+- Context: ADR-022 records what people fix. The same mistake tends to repeat on one sender's forms.
+- Decision: when a pending record has a reading that people already changed to the same new value on at least 3 earlier forms from the same sender (and the same form type when known), and at least 75% of all corrections of that reading agree, the record carries a suggestion. The review screen shows it under the field with how many earlier corrections agree ("3 of 3") and two buttons: apply or ignore. Applying is an ordinary correction, so it is logged and the person's confirmation is required every time.
+- Not suggested: fields a person already looked at (source manual), empty readings, approved records, and the record's own corrections. Ignoring a suggestion is not remembered between sessions.
+- Consequences: the system learns but never changes a value by itself, so a wrong habit cannot spread unnoticed. The thresholds are constants in `db/repo.py`. Matching is by the exact reading, so it helps with repeated identical misreads (a sender spelled the same odd way, a recurring number), not with random digit errors.
+
 ## 13. Open questions
 
 ### Technical

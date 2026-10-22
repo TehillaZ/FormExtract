@@ -83,6 +83,23 @@ class Correction(BaseModel):
     at: datetime
 
 
+class PastFix(BaseModel):
+    old: str | None
+    new: str | None
+    at: datetime
+
+
+class Suggestion(BaseModel):
+    """A fix proposed from earlier corrections of the same mistake. Never applied by itself: a person decides."""
+    field: str
+    current: str | None      # what the system read now
+    suggested: str | None    # what people changed that very reading to, before
+    times: int               # how many earlier corrections agree
+    total: int               # how many earlier corrections of this reading there were at all
+    sender: str | None
+    examples: list[PastFix] = []
+
+
 class CommitmentRecord(BaseModel):
     id: UUID = PField(default_factory=uuid4)
     document_id: UUID | None = None
@@ -101,6 +118,7 @@ class CommitmentRecord(BaseModel):
     approved_at: datetime | None = None
     corrections: list[Correction] = []
     duplicate_warnings: list[str] = []   # filled when read, never stored
+    suggestions: list[Suggestion] = []   # filled when read, never stored
 
     def all_fields(self) -> list[Field]:
         return [self.first_name, self.last_name, self.id_number, self.received_date, self.sender,

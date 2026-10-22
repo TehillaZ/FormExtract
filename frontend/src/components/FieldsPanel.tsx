@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ApiError } from '../api/client'
 import { usePatchRecord } from '../api/hooks'
-import type { CommitmentRecord, Field, FieldChanges } from '../api/types'
+import type { CommitmentRecord, Field, FieldChanges, Suggestion } from '../api/types'
 import { FIELD_DEFS, type FieldDef, displayValue, editValues, fieldsOf, flaggedCount, isFlagged, reasonText, recordTitle } from '../lib/fields'
 import { ConfidenceBadge, Icon } from './ui'
 
@@ -11,21 +11,57 @@ function currentValues(def: FieldDef, fields: Field[]): FieldChanges {
   return def.list ? { [def.key]: values } : { [def.key]: values[0] ?? '' }
 }
 
+/** "Smart memory": people fixed this very reading the same way on earlier forms. Offered, never applied by itself. */
+function SuggestionBox({ def, suggestion, recordId }: { def: FieldDef; suggestion: Suggestion; recordId: string }) {
+  const [dismissed, setDismissed] = useState(false)
+  const apply = usePatchRecord(recordId)
+  if (dismissed) return null
+  const text = (v: string | null) => v ?? 'ריק'
+  const accept = () => {
+    const changes = def.list
+      ? { [def.key]: suggestion.suggested ? suggestion.suggested.split(', ') : [] }
+      : { [def.key]: suggestion.suggested ?? '' }
+    apply.mutate(changes)
+  }
+  return (
+    <div role="group" aria-label={`הצעה ל${def.label}`}
+      className="mt-1 rounded-[8px] border border-accent-line bg-accent-soft px-2.5 py-1.5 text-xs">
+      <div className="font-semibold">
+        בטפסים קודמים{suggestion.sender ? ` מ${suggestion.sender}` : ''} תוקן {text(suggestion.current)} ל-{text(suggestion.suggested)}
+      </div>
+      <div className="text-sub">{suggestion.times} מתוך {suggestion.total} תיקונים קודמים של קריאה זו · ההצעה לא הוחלה</div>
+      {apply.isError && <div role="alert" className="font-semibold text-warn-ink">ההחלה נכשלה</div>}
+      <div className="mt-1 flex gap-1.5">
+        <button type="button" onClick={accept} disabled={apply.isPending}
+          className="rounded-[7px] border-0 bg-accent px-2.5 py-[3px] text-xs font-semibold text-white">החילי את ההצעה</button>
+        <button type="button" onClick={() => setDismissed(true)}
+          className="rounded-[7px] border border-line bg-surface px-2.5 py-[3px] text-xs text-ink">התעלמי</button>
+      </div>
+    </div>
+  )
+}
+
 function FieldRow({ def, record }: { def: FieldDef; record: CommitmentRecord }) {
   const fields = fieldsOf(record, def)
   const flagged = fields.some(isFlagged)
   const [editing, setEditing] = useState(false)
   const confirm = usePatchRecord(record.id)
+  const suggestion = record.suggestions.find((s) => s.field === def.key)
 
   return (
     <div className={`flex items-start gap-2 border-b border-[#eeeff1] px-4 py-2 ${flagged ? 'bg-warn-row shadow-[inset_-4px_0_0_var(--color-warn)]' : ''}`}
       data-flagged={flagged}>
       <div className="w-[66px] shrink-0 pt-[2px] text-xs text-sub">{def.label}</div>
-      {editing
-        ? <FieldEditor def={def} record={record} fields={fields} onDone={() => setEditing(false)} />
-        : <ReadOnlyValue def={def} fields={fields} flagged={flagged} onEdit={() => setEditing(true)}
-            onConfirm={() => confirm.mutate(currentValues(def, fields))} confirming={confirm.isPending}
-            error={confirm.error instanceof ApiError ? confirm.error.message : confirm.error ? 'השמירה נכשלה' : null} />}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start gap-2">
+          {editing
+            ? <FieldEditor def={def} record={record} fields={fields} onDone={() => setEditing(false)} />
+            : <ReadOnlyValue def={def} fields={fields} flagged={flagged} onEdit={() => setEditing(true)}
+                onConfirm={() => confirm.mutate(currentValues(def, fields))} confirming={confirm.isPending}
+                error={confirm.error instanceof ApiError ? confirm.error.message : confirm.error ? 'השמירה נכשלה' : null} />}
+        </div>
+        {suggestion && !editing && <SuggestionBox def={def} suggestion={suggestion} recordId={record.id} />}
+      </div>
     </div>
   )
 }

@@ -33,6 +33,18 @@ export interface CommitmentRecord {
   approved_at: string | null
   corrections: Correction[]
   duplicate_warnings: string[]
+  suggestions: Suggestion[]
+}
+
+/** A fix proposed from earlier corrections of the same mistake. Only an offer: a person decides. */
+export interface Suggestion {
+  field: string
+  current: string | null
+  suggested: string | null
+  times: number                       // earlier corrections that agree
+  total: number                       // earlier corrections of this reading at all
+  sender: string | null
+  examples: { old: string | null; new: string | null; at: string }[]
 }
 
 export interface PageStatus {
