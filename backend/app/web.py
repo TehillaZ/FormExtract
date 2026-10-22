@@ -27,11 +27,16 @@ class SinglePageApp(StaticFiles):
 
     async def get_response(self, path, scope):
         try:
-            return await super().get_response(path, scope)
+            response = await super().get_response(path, scope)
         except StarletteHTTPException as error:
-            if error.status_code == 404:
-                return await super().get_response("index.html", scope)
-            raise
+            if error.status_code != 404:
+                raise
+            response = await super().get_response("index.html", scope)
+        if response.headers.get("content-type", "").startswith("text/html"):
+            # the page names the current script file: it must be re-checked on every visit, or a browser keeps
+            # running an old build after the interface was rebuilt (the hashed assets themselves can be cached)
+            response.headers["Cache-Control"] = "no-cache"
+        return response
 
 
 def create_web_app(dist: Path = DIST) -> FastAPI:

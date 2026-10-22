@@ -27,6 +27,11 @@ class TestInterface:
         r = client.get("/")
         assert r.status_code == 200 and "FormExtract UI" in r.text and r.headers["content-type"].startswith("text/html")
 
+    def test_the_page_is_rechecked_on_every_visit_so_a_rebuilt_interface_is_never_hidden_by_the_cache(self, client):
+        assert client.get("/").headers["cache-control"] == "no-cache"
+        assert client.get("/records/some-reload-path").headers["cache-control"] == "no-cache"
+        assert "cache-control" not in client.get("/assets/app.js").headers
+
     def test_assets_are_served(self, client):
         r = client.get("/assets/app.js")
         assert r.status_code == 200 and "console.log" in r.text
