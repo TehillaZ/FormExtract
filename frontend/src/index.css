@@ -20,10 +20,10 @@
   --color-warn-row: #fef1e8;
   --color-warn-line: #f2a877;
   --color-warn-ink: #b8430a;
-  --color-mid-soft: #fbf3d0;   /* a value that is probably right but unverified: calmer than the orange of a doubtful one */
-  --color-mid-row: #fffbea;
-  --color-mid-line: #e6d27a;
-  --color-mid-ink: #7a5d00;
+  --color-mid-soft: #fdf9e6;   /* a value that is probably right but unverified: calmer than the orange of a doubtful one */
+  --color-mid-row: #fffdf6;
+  --color-mid-line: #eee2ae;
+  --color-mid-ink: #85691a;
   --color-ok-soft: #ddf0e6;
   --color-ok-ink: #1e7a4c;
 }
