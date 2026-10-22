@@ -14,9 +14,9 @@ ARIAL = lambda s: F(WF + "arial.ttf", s)
 ARIALB = lambda s: F(WF + "arialbd.ttf", s)
 DAVID = lambda s: F(WF + "david.ttf", s)
 COUR = lambda s: F(WF + "cour.ttf", s)
-HAND_HE = [os.path.join(FD, "GveretLevin-Regular.ttf"), os.path.join(FD, "Karantina-Regular.ttf"),
-           os.path.join(FD, "AmaticSC-Bold.ttf")]
-HAND_EN = [os.path.join(FD, "Caveat.ttf"), os.path.join(FD, "AmaticSC-Bold.ttf")]
+HAND_HE = [os.path.join(FD, "GveretLevin-Regular.ttf.ttf"), os.path.join(FD, "Karantina-Regular.ttf.ttf"),
+           os.path.join(FD, "AmaticSC-Bold.ttf.ttf")]
+HAND_EN = [os.path.join(FD, "Caveat.ttf"), os.path.join(FD, "AmaticSC-Bold.ttf.ttf")]
 INKS = [(20, 40, 150), (25, 25, 35), (30, 60, 170), (10, 10, 90)]
 YELLOW = (250, 245, 90)
 
